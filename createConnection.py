@@ -2,13 +2,15 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import socket, sys, ipaddress
+import socket, sys, ipaddress, configparser
 
 from getpass import getuser, getpass
 
+#from cryptography.fernet import Fernet
+
 from modules import get_ip
 
-def createConnection(verbose):
+def createConnection(f_key, connectionFile, show, verbose):
     print("\nCreate new connection\n----------")
     
     defaultIP = get_ip()
@@ -25,6 +27,8 @@ def createConnection(verbose):
             
             if not ip:
                 ip = defaultIP
+            else:
+                defaultIP = ip       
             
             if verbose:
                 print("--- Checking if IP is valid ...")
@@ -63,6 +67,7 @@ def createConnection(verbose):
         userNo = 0
         userList = []
         passwdList = []
+        encPasswdList = []
         while True: 
             userNo += 1
             
@@ -83,13 +88,19 @@ def createConnection(verbose):
             #input password
             while True:
                 print("\nPassword " + str(userNo))
-                passwd1 = getpass("[" + defaultPasswd + "] ? ")
+                if show:
+                    passwd1 = input("[" + defaultPasswd + "] ? ")
+                else:
+                    passwd1 = getpass("[" + defaultPasswd + "] ? ")
                 
                 if not passwd1:
                     passwd1 = defaultPasswd
                     
                 print("Enter password " + str(userNo) + " again")
-                passwd2 = getpass("[" + defaultPasswd + "] ? ")
+                if show:
+                    passwd2 = input("[" + defaultPasswd + "] ? ")
+                else:
+                    passwd2 = getpass("[" + defaultPasswd + "] ? ")
                 
                 if not passwd2:
                     passwd2 = defaultPasswd
@@ -127,4 +138,93 @@ def createConnection(verbose):
         elif correct.lower() != "n":
             break
         
+    # encrypt passwords
+    if verbose:
+        print("\n--- Encrypting passwords ...")
+    for i in range(0, userNo):
+        encPasswdList.append(f_key.encrypt(passwdList[i].encode()))
+    
+    if verbose:
+        for i in range(0, userNo):
+            enc = encPasswdList[i]
+            print("\n--- Encrypted password " + str(i + 1) + ": " + str(enc))
+            if show:
+                dec = f_key.decrypt(enc)
+                #print("--- Decrypted password " + str(i + 1) + ": " + str(dec))
+                plain = bytes(dec).decode("utf-8")
+                print("--- Plain text password " + str(i + 1) + ": " + str(plain))
+        
     print("\nAdding new connection ...") 
+    
+    writeConnection(connectionFile, ip, port, userNo, userList, encPasswdList, verbose)
+    
+def writeConnection(connectionFile, ip, port, userNo, userList, passwdList, verbose):
+    exUsers = 0
+    
+    config = configparser.ConfigParser()
+    
+    config.read(connectionFile)  # read config file
+
+    if verbose:
+        print("Adding " + str(userNo) + " users")
+
+    # read variables from config file
+    try:
+        config.add_section(ip)
+    except configparser.DuplicateSectionError:
+        print("\nIP " + ip + " already exist")
+        
+    try:
+        oldPort = config.get(ip, 'port')                
+    except:
+        config[ip]['port'] = str(port)
+    else:
+        print("Port is already set to " + oldPort)
+        if oldPort != str(port):
+            print("Updating port with " + str(port))
+            config.set(ip, 'port', str(port))
+            
+        options = config.options(ip)
+        
+        for option in options:
+            if option.startswith('username'):
+                exUsers += 1
+                
+            for i in range(0, exUsers):
+                oldUser = config.get(ip, 'username' + str(i))
+                for userName in userList:
+                    if oldUser == userName:
+                        print("User " + userName + " already exists")
+                        userList.remove(userName)
+                        userNo -= 1
+                        print("Users left to add: " + str(userNo))
+    
+        print("There is already " + str(exUsers) + " users for that IP")
+        
+    if verbose:
+        print("\n --- Adding connection ...")
+        print("     IP:         " + ip)
+        print("     Port:       " + str(port))    
+    
+    if userNo == 0:
+        print("No users left to add")
+    else:
+        for i in range(0 + exUsers, userNo + exUsers):
+            if verbose:
+                print("     User " + str(i + 1) + ":     " + userList[i - exUsers])
+                print("     Password " + str(i + 1) + ": " + str(passwdList[i - exUsers]))
+            config[ip]['username' + str(i)] = userList[i - exUsers]
+            passBytes = passwdList[i - exUsers]
+            passString = passBytes.decode()
+            config[ip]['password' + str(i)] = passString
+    
+    with open(connectionFile, 'w') as configfile:
+        config.write(configfile)
+        
+    
+    
+    
+    
+    
+    
+    

@@ -48,3 +48,29 @@ def get_ip():
         s.close()
     return IP
 
+def createKeyFile(keyFileLocation,verbose):
+    print("\nCreating key file at " + keyFileLocation )
+    
+    #import random
+    #key = str(random.getrandbits(128))
+    
+    #import uuid
+    #key = uuid.uuid4().hex
+    
+    #import binascii, os
+    #key = str(binascii.hexlify(os.urandom(16)))
+
+    #import secrets
+    #key = secrets.token_hex(nbytes=16)
+    
+    from cryptography.fernet import Fernet
+    key = Fernet.generate_key()
+
+    print("\nKey value: " + str(key))
+    
+    with open(keyFileLocation, 'wb') as file_object:
+        file_object.write(key)
+        
+    print("\nKey file written")
+    
+    return key
