@@ -14,22 +14,26 @@ from createConnection import createConnection
 
 from printConnections import showConnections
 
+from makeConnection import makeConnection
+
 # handle options and arguments passed to script
 try:
     myopts, args = getopt.getopt(sys.argv[1:],
-                                 'apsvh',
-                                 ['add', 'print', 'show', 'verbose', 'help'])
+                                 'apscvh',
+                                 ['add', 'print', 'show', 'connect', 'verbose', 'help'])
 
 except getopt.GetoptError as e:
     onError(1, str(e))
 
 # if no options passed, then exit
 if len(sys.argv) == 1:  # no options passed
-    onError(2, 2)
+    option = "-c"
+    #onError(2, 2)
     
 createNewConnection = False
 printConnections = False    
 show = False
+connect = False
 verbose = False
             
 # interpret options and arguments
@@ -40,6 +44,8 @@ for option, argument in myopts:
         printConnections = True    
     elif option in ('-s', '--show'):  # print passwords on screen
         show = True
+    elif option in ('-c', '--connect'):  # connect
+        connect = True
     elif option in ('-v', '--verbose'):  # verbose output
         verbose = True
     elif option in ('-h', '--help'):  # display help text
@@ -64,7 +70,12 @@ else:
 f_key = Fernet(key)
 
 if createNewConnection and printConnections:
-    onError(3, "Only one of -a and -p can be stated")
+    onError(3, "Only one of -a, -p and -c can be stated")
+elif createNewConnection and connect:
+    onError(3, "Only one of -a, -p and -c can be stated")
+elif printConnections and connect:
+    onError(3, "Only one of -a, -p and -c can be stated")
+    
 
 connectionFile = os.path.join(os.path.dirname(os.path.abspath(__file__)), "connections")
 
@@ -73,3 +84,11 @@ if createNewConnection:
 
 if printConnections:
     showConnections(f_key, connectionFile, show, verbose)
+    
+if connect:
+    makeConnection(f_key, connectionFile, show, verbose)
+    
+    
+    
+    
+    
