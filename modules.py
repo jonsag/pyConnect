@@ -6,11 +6,21 @@ import configparser, os, sys
 
 import socket
 
+from pathlib import Path
+
 config = configparser.ConfigParser()  # define config file
 config.read("%s/config.ini" % os.path.dirname(os.path.realpath(__file__)))  # read config file
 
 # read variables from config file
-var = config.get('header', 'var').strip()
+knownhostsfile = config.get('paths', 'knownhostsfile').strip()
+rsapublickey = config.get('paths', 'rsapublickey').strip()
+settingsdir = config.get('paths', 'settingsdir').strip()
+
+homeDir = str(Path.home())
+
+knownHostsFile = os.path.join(homeDir, knownhostsfile)
+rsaPublicKey = os.path.join(homeDir, rsapublickey)
+settingsDir = os.path.join(homeDir, settingsdir)
 
 # handle errors
 def onError(errorCode, extra):
@@ -21,7 +31,7 @@ def onError(errorCode, extra):
     elif errorCode == 2: # no argument given to option, print usage and exit
         print("No options given")
         usage(errorCode)
-    elif errorCode == 3: # print error information and exit
+    elif errorCode in (3, 5, 6): # print error information and exit
         print(extra)
         sys.exit(errorCode)
     elif errorCode == 4: # print error information and return running program

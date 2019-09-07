@@ -2,11 +2,113 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import configparser, sys, base64, os
+import configparser, sys, base64, os, subprocess
 
+from modules import knownHostsFile, rsaPublicKey, onError
 
+def selectConnectionType(f_key, connectionFile, show, verbose):
+    connectionTypeNo = 0
+    
+    connectionTypes = ['ssh', 'sftp', 'scp', 'ssh -X', 'ssh -Y', 'ssh-copy-id']
 
-def makeConnection(f_key, connectionFile, show, verbose):
+    print("\nSelect connection type\n----------")
+    for connectionType in connectionTypes:
+        connectionTypeNo += 1
+        print(" " + str(connectionTypeNo) + ": " + connectionType)
+        
+    print("\nEnter number:")
+    while True:
+        selection = input(" ? ")
+        
+        if not selection:
+            print("You must select a number 1-" + str(connectionTypeNo) + "\nTry again")
+        else:
+            try:
+                selection = int(selection)
+            except:
+                print("Only integers allowed\nTry again:")
+            else:
+                if selection <= 0 or selection > connectionTypeNo:
+                    print("Number must be 1-" + str(connectionTypeNo))
+                else:
+                    break
+            
+    connectionType = connectionTypes[int(selection) - 1]
+    
+    if connectionType == "ssh":
+        ip, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, connectionType, verbose)
+        
+        sshConnect(ip, port, userName, plainTextPass, verbose)
+        #pxsshConnect(ip, port, userName, plainTextPass, verbose)
+        #paramikoConnect(ip, port, userName, plainTextPass, verbose)
+    elif connectionType == "ssh-copy-id":
+        keyFile = sshCreateKey(verbose)
+        if verbose:
+            print("\n--- Will use public key at " + keyFile)
+        
+        ip, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, connectionType, verbose)
+
+        sshCopyID(ip, port, userName, plainTextPass, keyFile, verbose)
+        
+def sshCreateKey(verbose):
+    if verbose:
+        print("\n--- Checking if there is a key at " + rsaPublicKey)
+        
+    if os.path.isfile(rsaPublicKey):
+        if verbose:
+            print("    OK")
+        keyFile = rsaPublicKey
+    else:
+        keyDir = os.path.dirname(rsaPublicKey)
+        print("\nCould not find key file at " + 
+              rsaPublicKey + 
+              "\n\nIf file is at other location, state full path, \nor leave empty to create key pair in\n" + 
+              rsaPublicKey)
+        
+        keyFile = input(" ? ")    
+            
+        if keyFile:
+            if not os.path.isfile(keyFile):
+                keyDir = os.path.dirname(keyFile)
+                keyFile = os.path.splitext(keyFile)[0]
+                print("\nCould not find that file either\nDo you want to create key pair at " + 
+                      keyFile + "?")
+                answer = input("n/Y")
+                
+                if answer.lower() != "n":
+                    print("\nWill create key pair at " + keyFile + "\n\n----------")
+                    
+        else:
+            keyFile = rsaPublicKey
+            keyFile = os.path.splitext(keyFile)[0]
+            print("\nWill create key pair at " + keyFile + "\n\n----------")
+            
+        keyDir = os.path.dirname(keyFile)
+        
+        if keyDir == "":
+            keyDir = "./"
+        
+        if not os.path.isdir(keyDir):
+            try:
+                os.makedirs(keyDir, exist_ok=False)
+            except:
+                onError(6, ("Could not create directory " + keyDir))
+        
+        subprocess.run(["ssh-keygen", "-f", keyFile])
+        
+        print("----------")
+        
+    return keyFile
+    
+def sshCopyID(ip, port, userName, plainTextPass, keyFile, verbose):
+    if verbose:
+        print("--- Copying id ...")
+        
+    print("\n----------")
+    subprocess.run(["ssh-copy-id", "-p", port, "-i", keyFile, (userName + "@" + ip)])
+    print("----------")
+
+def selectConnection(f_key, connectionFile, show, connectionType, verbose):
     connectionNo = 0
     userNo = 0
     connectionList =   []
@@ -21,18 +123,20 @@ def makeConnection(f_key, connectionFile, show, verbose):
     
     sections = config.sections()
     
+    print("\nSelect host\n----------")
+    
     for section in sections:
         connectionNo += 1
         
         hostName = config.get(section, 'hostname')
         port = config.get(section, 'port')
         
-        print("\n" + str(connectionNo) + ": " + section + ", " + hostName)
+        print(" " + str(connectionNo) + ": " + section + ", " + hostName)
         connectionList.append({u'number': connectionNo, u'ip': section, u'host': hostName, u'port': port})
         
     print("\nEnter number:")
     while True:
-        selection = input("? ")
+        selection = input(" ? ")
         
         try:
             selection = int(selection)
@@ -49,7 +153,7 @@ def makeConnection(f_key, connectionFile, show, verbose):
             ip = connection['ip']
             host = connection['host']
         
-    print("\nUsers on " + ip + ", " + host)
+    print("\nSelect user on " + ip + ", " + host + "\n----------")
         
     options = config.options(ip)
         
@@ -67,14 +171,14 @@ def makeConnection(f_key, connectionFile, show, verbose):
             passwdSet = True
             
         if userSet and passwdSet:
-            print("\n" + str(userNo) + " " + user)
+            print(" " + str(userNo) + ": " + user)
             userList.append({u'number': userNo, u'user': user, u'passwd': passwd})
             userSet = False
             passwdSet = False
             
     print("\nEnter number:")
     while True:
-        selection = input("? ")
+        selection = input(" ? ")
         
         try:
             selection = int(selection)
@@ -98,11 +202,8 @@ def makeConnection(f_key, connectionFile, show, verbose):
     
     if show:
         print("using password " + plainTextPass)
-    
-    pxsshConnect(ip, port, userName, plainTextPass, verbose)
-    
-    paramikoConnect(ip, port, userName, plainTextPass, verbose)   
-    
+        
+    return ip, port, userName, plainTextPass    
         
 def paramikoConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:
@@ -132,6 +233,11 @@ def paramikoConnect(ip, port, userName, plainTextPass, verbose):
 def sshConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:
         print("--- Connecting with ssh ...")
+    
+    print("\nssh session starts\n----------")
+    subprocess.run(["ssh", ip, "-l", userName, "-p", port, "-o", "UserKnownHostsFile=" + knownHostsFile])
+    print("----------\nssh session ended")
+    sys.exit(0)
         
 def pxsshConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:
@@ -143,7 +249,7 @@ def pxsshConnect(ip, port, userName, plainTextPass, verbose):
     
     try:                                                            
         s = pxssh.pxssh()
-        s.login (ip, userName, plainTextPass)
+        s.login (ip, userName, plainTextPass, port=int(port))
         s.sendline ('uptime')   # run a command
         s.prompt()             # match the prompt
         #print(s.before)          # print everything before the prompt.
