@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import configparser, os, sys
+import configparser, os, sys, subprocess
 
 import socket
 
@@ -84,3 +84,24 @@ def createKeyFile(keyFileLocation,verbose):
     print("\nKey file written")
     
     return key
+        
+def runSubprocess(cmd, verbose):
+    if verbose:
+        print("\n--- Running subprocess")
+        print("    Constructing command from \n    " + cmd + " ...")
+        
+    cmdList = cmd.split()
+    
+    if verbose:
+        print("    Command list: \n        " + str(cmdList))
+                
+    print("\n" + cmdList[0] + " session starts\n----------")
+    response = subprocess.run(cmdList)
+    print("----------\n" + cmdList[0] + " session ended")
+    
+    returnCode = response.returncode
+    if returnCode != 0:
+        print("\nProcess exited uncleanly\nwith exit code " + str(response.returncode))
+              
+        
+    

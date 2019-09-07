@@ -4,7 +4,7 @@
 
 import configparser, sys, base64, os, subprocess
 
-from modules import knownHostsFile, rsaPublicKey, onError
+from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess
 
 def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionTypeNo = 0
@@ -41,6 +41,9 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
         sshConnect(ip, port, userName, plainTextPass, verbose)
         #pxsshConnect(ip, port, userName, plainTextPass, verbose)
         #paramikoConnect(ip, port, userName, plainTextPass, verbose)
+        
+        sys.exit(0)
+        
     elif connectionType == "ssh-copy-id":
         keyFile = sshCreateKey(verbose)
         if verbose:
@@ -48,7 +51,9 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
         
         ip, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, connectionType, verbose)
 
-        sshCopyID(ip, port, userName, plainTextPass, keyFile, verbose)
+        sshCopyID(ip, port, userName, keyFile, verbose)
+        
+        sys.exit(0)
         
 def sshCreateKey(verbose):
     if verbose:
@@ -94,19 +99,18 @@ def sshCreateKey(verbose):
             except:
                 onError(6, ("Could not create directory " + keyDir))
         
-        subprocess.run(["ssh-keygen", "-f", keyFile])
-        
-        print("----------")
+        cmd = "ssh-keygen -f " + keyFile
+        runSubprocess(cmd, verbose)
         
     return keyFile
     
-def sshCopyID(ip, port, userName, plainTextPass, keyFile, verbose):
+def sshCopyID(ip, port, userName, keyFile, verbose):
     if verbose:
-        print("--- Copying id ...")
-        
-    print("\n----------")
-    subprocess.run(["ssh-copy-id", "-p", port, "-i", keyFile, (userName + "@" + ip)])
-    print("----------")
+        print("\n--- Copying id ...")
+    
+    cmd = "ssh-copy-id -p " + port + " -i " + keyFile + " " + (userName + "@" + ip)
+    runSubprocess(cmd, verbose)
+
 
 def selectConnection(f_key, connectionFile, show, connectionType, verbose):
     connectionNo = 0
@@ -201,7 +205,7 @@ def selectConnection(f_key, connectionFile, show, connectionType, verbose):
     plainTextPass = bytes(f_key.decrypt((passwd).encode())).decode("utf-8")
     
     if show:
-        print("using password " + plainTextPass)
+        print("\nUse password '" + plainTextPass + "'")
         
     return ip, port, userName, plainTextPass    
         
@@ -228,17 +232,13 @@ def paramikoConnect(ip, port, userName, plainTextPass, verbose):
             print('... ' + line.strip('\n'))
         client.close()
         
-    sys.exit(0)
-
 def sshConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:
-        print("--- Connecting with ssh ...")
+        print("\n--- Connecting with ssh ...")
     
-    print("\nssh session starts\n----------")
-    subprocess.run(["ssh", ip, "-l", userName, "-p", port, "-o", "UserKnownHostsFile=" + knownHostsFile])
-    print("----------\nssh session ended")
-    sys.exit(0)
-        
+    cmd = "ssh " + ip + " -l " + userName + " -p " + port + " -o UserKnownHostsFile=" + knownHostsFile
+    runSubprocess(cmd, verbose)
+                
 def pxsshConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:
         print("--- Connecting with pxssh ...")
@@ -269,9 +269,7 @@ def pxsshConnect(ip, port, userName, plainTextPass, verbose):
     except pxssh.ExceptionPxssh as e:
         print("pxssh failed on login.")
         print(str(e))
-        
-    sys.exit(0)
-    
+            
 def pxsshPrint(input):
     lines = input.split(b'\r\n')
     

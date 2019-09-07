@@ -12,40 +12,51 @@ from modules import onError, usage, createKeyFile, settingsDir
 
 from createConnection import createConnection
 
-from printConnections import showConnections
+from viewConnections import viewConnections
 
 from makeConnection import selectConnectionType
+
+from editConnections import editConnections
+
+create = False
+view = False    
+show = False
+connect = False
+edit = False
+verbose = False
+selections = 0
 
 # handle options and arguments passed to script
 try:
     myopts, args = getopt.getopt(sys.argv[1:],
-                                 'apscvh',
-                                 ['add', 'print', 'show', 'connect', 'verbose', 'help'])
+                                 'apscevh',
+                                 ['add', 'print', 'show', 'connect', 'edit', 'verbose', 'help'])
 
 except getopt.GetoptError as e:
     onError(1, str(e))
 
 # if no options passed, then exit
 if len(sys.argv) == 1:  # no options passed
-    option = "-c"
+    print("Automatically selecting to connect")
+    connect = True
     #onError(2, 2)
-    
-createNewConnection = False
-printConnections = False    
-show = False
-connect = False
-verbose = False
-            
+
 # interpret options and arguments
 for option, argument in myopts:
     if option in ('-a', '--add'):  # add connections
-        createNewConnection = True
+        create = True
+        selections += 1
     elif option in ('-p', '--print'):  # print connections
-        printConnections = True    
+        view = True
+        selections += 1  
     elif option in ('-s', '--show'):  # print passwords on screen
         show = True
     elif option in ('-c', '--connect'):  # connect
         connect = True
+        selections += 1
+    elif option in ('-e', '--edit'):  # edit connections
+        edit = True
+        selections += 1
     elif option in ('-v', '--verbose'):  # verbose output
         verbose = True
     elif option in ('-h', '--help'):  # display help text
@@ -71,38 +82,34 @@ if os.path.isfile(keyFileLocation):
         key = file_object.read()
     if verbose:
         print("    Key value: " + str(key))
-        print("    Key Type: " + str(type(key)))
 else:
     key = createKeyFile(keyFileLocation, verbose)
     
 
 f_key = Fernet(key)
 
-if createNewConnection and printConnections:
-    onError(3, "Only one of -a, -p and -c can be stated")
-elif createNewConnection and connect:
-    onError(3, "Only one of -a, -p and -c can be stated")
-elif printConnections and connect:
-    onError(3, "Only one of -a, -p and -c can be stated")
-    
+if selections >= 2:
+    onError(3, "Only one of -a, -p, -c and -e can be stated")
 
 connectionFile = os.path.join(settingsDir, "connections")
 if not os.path.isfile(connectionFile):
     print("\nYou haven't created any connections yet\nLet's start with adding some\nThen rerun this program")
-    createNewConnection = True
-    printConnections = False
-    selectConnectionType = False
+    create = True
+    view = False
+    connect = False
+    edit = False
     
-if createNewConnection:
+if create:
     createConnection(f_key, connectionFile, show, verbose)
 
-if printConnections:
-    showConnections(f_key, connectionFile, show, verbose)
+if view:
+    viewConnections(f_key, connectionFile, show, verbose)
     
 if connect:
     selectConnectionType(f_key, connectionFile, show, verbose)
     
-    
+if edit:
+    editConnections(f_key, connectionFile, show, verbose)    
     
     
     
