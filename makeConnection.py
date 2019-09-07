@@ -36,7 +36,12 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionType = connectionTypes[int(selection) - 1]
     
     if connectionType == "ssh":
-        ip, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, connectionType, verbose)
+        ip, host, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, verbose)
+        
+        print("\nWill connect to " + host + " at " + ip + " on port " + port + " as " + userName)
+        
+        if show:
+            print("\nUse password '" + plainTextPass + "'")
         
         sshConnect(ip, port, userName, plainTextPass, verbose)
         #pxsshConnect(ip, port, userName, plainTextPass, verbose)
@@ -46,10 +51,17 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
         
     elif connectionType == "ssh-copy-id":
         keyFile = sshCreateKey(verbose)
+        
         if verbose:
             print("\n--- Will use public key at " + keyFile)
         
-        ip, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, connectionType, verbose)
+        ip, host, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, verbose)
+
+        print("\nWill transfer key from " + keyFile + 
+              " \nto " + host + " at " + ip + " on port " + port + " as " + userName)
+        
+        if show:
+            print("\nUse password '" + plainTextPass + "'")
 
         sshCopyID(ip, port, userName, keyFile, verbose)
         
@@ -112,7 +124,7 @@ def sshCopyID(ip, port, userName, keyFile, verbose):
     runSubprocess(cmd, verbose)
 
 
-def selectConnection(f_key, connectionFile, show, connectionType, verbose):
+def selectConnection(f_key, connectionFile, show, verbose):
     connectionNo = 0
     userNo = 0
     connectionList =   []
@@ -122,7 +134,6 @@ def selectConnection(f_key, connectionFile, show, connectionType, verbose):
         print("\n--- Searching for sections in connections file")
         
     config = configparser.ConfigParser()
-    
     config.read(connectionFile)  # read config file
     
     sections = config.sections()
@@ -198,16 +209,20 @@ def selectConnection(f_key, connectionFile, show, connectionType, verbose):
         if int(user['number']) == selection:
             userName = user['user']
             passwd = user['passwd']
-            break    
-    
-    print("\nWill connect to " + host + " at " + ip + " on port " + port + " as " + userName)
-    
-    plainTextPass = bytes(f_key.decrypt((passwd).encode())).decode("utf-8")
-    
-    if show:
-        print("\nUse password '" + plainTextPass + "'")
+            break   
         
-    return ip, port, userName, plainTextPass    
+    plainTextPass = bytes(f_key.decrypt((passwd).encode())).decode("utf-8") 
+    
+    if verbose:
+        print("\n--- Selections:")
+        print("    IP:       " + ip)
+        print("    Hostname: " + host)
+        print("    Port:     " + port)
+        print("    Username: " + userName)
+        if show:
+            print("    Password: " + plainTextPass)
+        
+    return ip, host, port, userName, plainTextPass    
         
 def paramikoConnect(ip, port, userName, plainTextPass, verbose):
     if verbose:

@@ -8,13 +8,12 @@ from getpass import getuser, getpass
 
 #from cryptography.fernet import Fernet
 
-from modules import get_ip
+from modules import get_ip, onError
 
 def createConnection(f_key, connectionFile, show, verbose):
     print("\nCreate new connection\n----------")
     
     defaultIP = get_ip() # this computers IP
-    defaultHostName = socket.gethostname() # this host name
     defaultPort = "22"
     defaultUser = getuser() # user running this script
     defaultPasswd = "xxx"
@@ -26,8 +25,6 @@ def createConnection(f_key, connectionFile, show, verbose):
             
             if not ip: # if no IP stated, accept default IP
                 ip = defaultIP
-            else:
-                defaultIP = ip # if IP is given default IP is now the given one
             
             if verbose:
                 print("--- Checking if IP is valid ...")
@@ -43,18 +40,32 @@ def createConnection(f_key, connectionFile, show, verbose):
                     print("+++ Correct!")
                 break # break out of while loop
             
-        while True: #input host name
-            print("\nHost name")
-            if ip != get_ip():
-                defaultHostName = socket.gethostbyaddr(ip)[0]
-            hostName = input("[" + defaultHostName + "] ? ")
+        hostName = "" # probe for hostname
+        if verbose:
+            print("\n--- Asking " + ip + " for hostname ...")
+        try:
+            hostName = socket.gethostbyaddr(ip)[0]
+        except:
+            onError(4, "Could not get hostname")
+        else:
+            if verbose:
+                print("    OK\n    Got " + hostName)
             
-            if not hostName: # if no host name stated use default host name
-                hostName = defaultHostName
+        while True:  # input host name
+            if hostName:
+                print("\nHost name")
+                newHostName = input("[" + hostName + "] ? ")
             else:
-                defaultHostName = hostName # if host name is given default host name is now the given one
-                
-            break # break out of while loop
+                print("\nHost name")
+                newHostName = input(" ? ")
+            
+            if not newHostName and not hostName: # if no host name stated
+                print("\nYou must state a hostname\nTry again")
+            elif not newHostName and hostName:
+                break
+            else:
+                hostName = newHostName
+                break # break out of while loop
                 
         while True: #input port
             print("\nRemote port")
@@ -62,8 +73,6 @@ def createConnection(f_key, connectionFile, show, verbose):
             
             if not port: # if no port stated use default port
                 port = defaultPort
-            else:
-                defaultPort = port # if port is given default port is now the given one
             
             try:
                 port = int(port) # raises an exception if port is not an integer
@@ -177,9 +186,9 @@ def createConnection(f_key, connectionFile, show, verbose):
         
     print("\nAdding new connection ...") 
     
-    writeConnection(connectionFile, ip, hostName, port, userList, encPasswdList, verbose)
+    writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList, verbose)
     
-def writeConnection(connectionFile, ip, hostName, port, userList, passwdList, verbose):    
+def writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList, verbose):    
     exUsers = 0
     
     config = configparser.ConfigParser()
@@ -247,7 +256,7 @@ def writeConnection(connectionFile, ip, hostName, port, userList, passwdList, ve
                 delUserIndex = userList.index(delUser) 
                 print("    Index: " + str(delUserIndex) + ", Username: " + userList[delUserIndex])
             userList.remove(delUser) # delete the username, with password, that was to be added
-            passwdList.pop(delUserIndex)
+            encPasswdList.pop(delUserIndex)
         if verbose:
             print("    Users left to add: " + str(len(userList)))
             
@@ -270,9 +279,11 @@ def writeConnection(connectionFile, ip, hostName, port, userList, passwdList, ve
         for i in range(0 + exUsers, len(userList) + exUsers): # start counting at number of existing users +1, count up to number of existing users + number of users to be added
             if verbose:
                 print("\n    User " + str(i + 1) + ":     " + userList[i - exUsers])
-                print("    Password " + str(i + 1) + ": " + str(passwdList[i - exUsers]))
+                print("    Password " + str(i + 1) + ": " + str(encPasswdList[i - exUsers]))
+            
             config[ip]['username' + str(i)] = userList[i - exUsers]
-            passBytes = passwdList[i - exUsers]
+            
+            passBytes = encPasswdList[i - exUsers]
             passString = passBytes.decode()
             config[ip]['password' + str(i)] = passString
     
