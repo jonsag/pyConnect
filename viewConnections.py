@@ -4,6 +4,8 @@
 
 import configparser
 
+from modules import decryptPassword
+
 def viewConnections(f_key, connectionFile, show, verbose):
     connectionNo = 0
     
@@ -38,11 +40,12 @@ def viewConnections(f_key, connectionFile, show, verbose):
                 print("\n    User:     " + config.get(section, option))
             elif option.startswith('password'):
                 
+                cryptPasswd = config.get(section, option)
                 if show:
-                    plainTextPass = bytes(f_key.decrypt((config.get(section, option)).encode())).decode("utf-8")
+                    plainTextPass = decryptPassword(f_key, cryptPasswd, verbose)
                     print("    Pass:     " + plainTextPass)
                 else:
-                    print("    Pass:     " + config.get(section, option))
+                    print("    Pass:     " + cryptPasswd)
                     
     print()
                     

@@ -46,6 +46,7 @@ def createConnection(f_key, connectionFile, show, verbose):
         try:
             hostName = socket.gethostbyaddr(ip)[0]
         except:
+            hostName = ""
             onError(4, "Could not get hostname")
         else:
             if verbose:
@@ -77,21 +78,21 @@ def createConnection(f_key, connectionFile, show, verbose):
             try:
                 port = int(port) # raises an exception if port is not an integer
             except:
-                print("\n" + str(port) + "is not an integer\bTry again")
-                            
-            if verbose:
-                print("--- Checking if port is valid ...")
-            if port >= 0 and port <= 65535: # port must be between 0 and 65535
+                print("\n" + str(port) + "is not an integer\nTry again")
+            else:                
                 if verbose:
-                    print("+++ Correct")
-                break # break out of while loop
-            else:
-                print("\n" + str(port) + " is outside the range 0-65535\nTry again")
+                    print("\n--- Checking if port is valid ...")
+                if port >= 0 and port <= 65535: # port must be between 0 and 65535
+                    if verbose:
+                        print("    OK")
+                    break # break out of while loop
+                else:
+                    print("\n" + str(port) + " is outside the range 0-65535\nTry again")
         
         userNo = 0 # stores number of users to be added
         userList = [] # stores user names to be added
         passwdList = [] # stores passwords to be added
-        encPasswdList = [] # stores the encrypted passwords to be added
+        cryptPasswdList = [] # stores the encrypted passwords to be added
         
         while True: # add users and passwords 
             userNo += 1 # count up number of users to be added
@@ -150,7 +151,7 @@ def createConnection(f_key, connectionFile, show, verbose):
         if verbose:
             print("\n--- Encrypting passwords ...")
         for i in range(0, len(userList)):
-            encPasswdList.append(f_key.encrypt(passwdList[i].encode())) # encrypt password and append to encrypted password as bytes
+            cryptPasswdList.append(f_key.encrypt(passwdList[i].encode())) # encrypt password and append to encrypted password as bytes
 
             
         # display all values and ask if correct
@@ -165,7 +166,7 @@ def createConnection(f_key, connectionFile, show, verbose):
                 print("Pass " + str(i + 1) + ": " + passwdList[i])
             else:
                 print("\nUser " + str(i + 1) + ": " + userList[i])
-                print("Pass " + str(i + 1) + ": " + str(encPasswdList[i].decode()))
+                print("Pass " + str(i + 1) + ": " + str(cryptPasswdList[i].decode()))
         print("\nIs this correct")
         correct = input("(Y/n/q) ? ")
         
@@ -177,7 +178,7 @@ def createConnection(f_key, connectionFile, show, verbose):
             
     if verbose:
         for i in range(0, len(userList)):
-            enc = encPasswdList[i] # encrypted password
+            enc = cryptPasswdList[i] # encrypted password
             print("\n--- Encrypted password " + str(i + 1) + ": " + str(enc))
             if show:
                 dec = f_key.decrypt(enc) # decrypted password
@@ -186,9 +187,9 @@ def createConnection(f_key, connectionFile, show, verbose):
         
     print("\nAdding new connection ...") 
     
-    writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList, verbose)
+    writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdList, verbose)
     
-def writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList, verbose):    
+def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdList, verbose):    
     exUsers = 0
     
     config = configparser.ConfigParser()
@@ -256,7 +257,7 @@ def writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList
                 delUserIndex = userList.index(delUser) 
                 print("    Index: " + str(delUserIndex) + ", Username: " + userList[delUserIndex])
             userList.remove(delUser) # delete the username, with password, that was to be added
-            encPasswdList.pop(delUserIndex)
+            cryptPasswdList.pop(delUserIndex)
         if verbose:
             print("    Users left to add: " + str(len(userList)))
             
@@ -279,11 +280,11 @@ def writeConnections(connectionFile, ip, hostName, port, userList, encPasswdList
         for i in range(0 + exUsers, len(userList) + exUsers): # start counting at number of existing users +1, count up to number of existing users + number of users to be added
             if verbose:
                 print("\n    User " + str(i + 1) + ":     " + userList[i - exUsers])
-                print("    Password " + str(i + 1) + ": " + str(encPasswdList[i - exUsers]))
+                print("    Password " + str(i + 1) + ": " + str(cryptPasswdList[i - exUsers]))
             
             config[ip]['username' + str(i)] = userList[i - exUsers]
             
-            passBytes = encPasswdList[i - exUsers]
+            passBytes = cryptPasswdList[i - exUsers]
             passString = passBytes.decode()
             config[ip]['password' + str(i)] = passString
     

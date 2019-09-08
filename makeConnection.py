@@ -4,7 +4,7 @@
 
 import configparser, sys, base64, os, subprocess
 
-from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess
+from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess, decryptPassword
 
 def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionTypeNo = 0
@@ -36,16 +36,16 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionType = connectionTypes[int(selection) - 1]
     
     if connectionType == "ssh":
-        ip, host, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, verbose)
+        ip, host, port, userNo, userName, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
         
         print("\nWill connect to " + host + " at " + ip + " on port " + port + " as " + userName)
         
         if show:
-            print("\nUse password '" + plainTextPass + "'")
+            print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
         
-        sshConnect(ip, port, userName, plainTextPass, verbose)
-        #pxsshConnect(ip, port, userName, plainTextPass, verbose)
-        #paramikoConnect(ip, port, userName, plainTextPass, verbose)
+        sshConnect(f_key, ip, port, userName, cryptPasswd, verbose)
+        #pxsshConnect(f_key, ip, port, userName, cryptPasswd, verbose)
+        #paramikoConnect(f_key, ip, port, userName, cryptPasswd, verbose)
         
         sys.exit(0)
         
@@ -55,13 +55,13 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
         if verbose:
             print("\n--- Will use public key at " + keyFile)
         
-        ip, host, port, userName, plainTextPass = selectConnection(f_key, connectionFile, show, verbose)
+        ip, host, port, userNo, userName, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
 
         print("\nWill transfer key from " + keyFile + 
               " \nto " + host + " at " + ip + " on port " + port + " as " + userName)
         
         if show:
-            print("\nUse password '" + plainTextPass + "'")
+            print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
 
         sshCopyID(ip, port, userName, keyFile, verbose)
         
@@ -151,20 +151,20 @@ def selectConnection(f_key, connectionFile, show, verbose):
         
     print("\nEnter number:")
     while True:
-        selection = input(" ? ")
+        ipSelection = input(" ? ")
         
         try:
-            selection = int(selection)
+            ipSelection = int(ipSelection)
         except:
             print("Only integers allowed\nTry again:")
         else:
-            if selection <= 0 or selection > connectionNo:
+            if ipSelection <= 0 or ipSelection > connectionNo:
                 print("Number must be 1-" + str(connectionNo))
             else:
                 break
             
     for connection in connectionList:
-        if int(connection['number']) == selection:
+        if int(connection['number']) == ipSelection:
             ip = connection['ip']
             host = connection['host']
         
@@ -193,38 +193,38 @@ def selectConnection(f_key, connectionFile, show, verbose):
             
     print("\nEnter number:")
     while True:
-        selection = input(" ? ")
+        userSelection = input(" ? ")
         
         try:
-            selection = int(selection)
+            userSelection = int(userSelection)
         except:
             print("Only integers allowed\nTry again:")
         else:
-            if selection <= 0 or selection > userNo:
+            if userSelection <= 0 or userSelection > userNo:
                 print("Number must be 1-" + str(userNo))
             else:
                 break
         
     for user in userList:
-        if int(user['number']) == selection:
+        if int(user['number']) == userSelection:
             userName = user['user']
-            passwd = user['passwd']
+            cryptPasswd = user['passwd']
             break   
         
-    plainTextPass = bytes(f_key.decrypt((passwd).encode())).decode("utf-8") 
     
     if verbose:
         print("\n--- Selections:")
-        print("    IP:       " + ip)
-        print("    Hostname: " + host)
-        print("    Port:     " + port)
-        print("    Username: " + userName)
+        print("    IP:          " + ip)
+        print("    Hostname:    " + host)
+        print("    Port:        " + port)
+        print("    User number: " + str((userSelection - 1)))
+        print("    Username:    " + userName)
         if show:
-            print("    Password: " + plainTextPass)
+            print("    Password:    " + decryptPassword(f_key, cryptPasswd, verbose))
         
-    return ip, host, port, userName, plainTextPass    
+    return ip, host, port, userSelection - 1, userName, cryptPasswd   
         
-def paramikoConnect(ip, port, userName, plainTextPass, verbose):
+def paramikoConnect(f_key, ip, port, userName, cryptPasswd, verbose):
     if verbose:
         print("--- Connecting with paramiko ...")
         
@@ -238,7 +238,7 @@ def paramikoConnect(ip, port, userName, plainTextPass, verbose):
     #client.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
     
     try:
-        client.connect(ip, port=int(port), username=userName, password=plainTextPass)
+        client.connect(ip, port=int(port), username=userName, password=decryptPassword(f_key, cryptPasswd, verbose))
     except paramiko.ssh_exception.SSHException as e:
         print("Error: \n" + str(e))
     else:
@@ -247,14 +247,14 @@ def paramikoConnect(ip, port, userName, plainTextPass, verbose):
             print('... ' + line.strip('\n'))
         client.close()
         
-def sshConnect(ip, port, userName, plainTextPass, verbose):
+def sshConnect(f_key, ip, port, userName, cryptPasswd, verbose):
     if verbose:
         print("\n--- Connecting with ssh ...")
     
     cmd = "ssh " + ip + " -l " + userName + " -p " + port + " -o UserKnownHostsFile=" + knownHostsFile
     runSubprocess(cmd, verbose)
                 
-def pxsshConnect(ip, port, userName, plainTextPass, verbose):
+def pxsshConnect(f_key, ip, port, userName, cryptPasswd, verbose):
     if verbose:
         print("--- Connecting with pxssh ...")
         
@@ -264,7 +264,7 @@ def pxsshConnect(ip, port, userName, plainTextPass, verbose):
     
     try:                                                            
         s = pxssh.pxssh()
-        s.login (ip, userName, plainTextPass, port=int(port))
+        s.login (ip, userName, decryptPassword(f_key, cryptPasswd, verbose), port=int(port))
         s.sendline ('uptime')   # run a command
         s.prompt()             # match the prompt
         #print(s.before)          # print everything before the prompt.
