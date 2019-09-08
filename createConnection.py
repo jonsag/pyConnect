@@ -8,17 +8,18 @@ from getpass import getuser, getpass
 
 #from cryptography.fernet import Fernet
 
-from modules import get_ip, onError
+from modules import get_ip, onError, encryptPassword, decryptPassword
 
 def createConnection(f_key, connectionFile, show, verbose):
     print("\nCreate new connection\n----------")
     
     defaultIP = get_ip() # this computers IP
+    hostName = ""
     defaultPort = "22"
     defaultUser = getuser() # user running this script
-    defaultPasswd = "xxx"
+    defaultPasswd = "xxxxx"
     
-    while True: # run until all users is added
+    while True: # run until all users are added
         while True: # input ip
             print("\nRemote IP")
             ip = input("[" + defaultIP + "] ? ")
@@ -37,14 +38,13 @@ def createConnection(f_key, connectionFile, show, verbose):
                 print("\n" + ip + " is a bad input\nTry again")
             else:
                 if verbose:
-                    print("+++ Correct!")
+                    print("    OK")
                 break # break out of while loop
-            
-        hostName = "" # probe for hostname
+             
         if verbose:
             print("\n--- Asking " + ip + " for hostname ...")
         try:
-            hostName = socket.gethostbyaddr(ip)[0]
+            hostName = socket.gethostbyaddr(ip)[0] # probe for hostname
         except:
             hostName = ""
             onError(4, "Could not get hostname")
@@ -53,16 +53,16 @@ def createConnection(f_key, connectionFile, show, verbose):
                 print("    OK\n    Got " + hostName)
             
         while True:  # input host name
-            if hostName:
+            if hostName: # if hostname could be probed
                 print("\nHost name")
                 newHostName = input("[" + hostName + "] ? ")
             else:
                 print("\nHost name")
                 newHostName = input(" ? ")
             
-            if not newHostName and not hostName: # if no host name stated
+            if not newHostName and not hostName: # if no hostname stated and no hostname could be probed
                 print("\nYou must state a hostname\nTry again")
-            elif not newHostName and hostName:
+            elif not newHostName and hostName: # if no hostname stated but hostname was probed
                 break
             else:
                 hostName = newHostName
@@ -99,34 +99,34 @@ def createConnection(f_key, connectionFile, show, verbose):
             
             while True: #input username
                 print("\nUsername " + str(userNo))
-                userName = input("[" + defaultUser + "] ? ")
+                username = input("[" + defaultUser + "] ? ")
                 
-                if not userName: # if no username given accept the default one
-                    userName = defaultUser
+                if not username: # if no username given accept the default one
+                    username = defaultUser
                 else:
-                    defaultUser = userName
+                    defaultUser = username
                     
-                if userName in userList: # if the username is already given in this session
+                if username in userList: # if the username is already given in this session
                     print("\nUsername already in list\nTry again")
                 else:
-                    userList.append(userName) # append username to list
+                    userList.append(username) # append username to list
                     break # break out of while loop
     
             while True: #input password
                 print("\nPassword " + str(userNo))
                 if show:
-                    passwd1 = input("[" + defaultPasswd + "] ? ")
+                    passwd1 = input("[" + defaultPasswd + "] ? ") # enter password invisible
                 else:
-                    passwd1 = getpass("[" + defaultPasswd + "] ? ")
+                    passwd1 = getpass("[" + defaultPasswd + "] ? ") # enter password visibly
                 
                 if not passwd1: # if no password is given accept the default one
                     passwd1 = defaultPasswd
                     
                 print("Enter password " + str(userNo) + " again")
                 if show:
-                    passwd2 = input("[" + defaultPasswd + "] ? ")
+                    passwd2 = input("[" + defaultPasswd + "] ? ") # enter password invisible
                 else:
-                    passwd2 = getpass("[" + defaultPasswd + "] ? ")
+                    passwd2 = getpass("[" + defaultPasswd + "] ? ") # enter password visibly
                 
                 if not passwd2: # if no password is given accept the default one
                     passwd2 = defaultPasswd
@@ -143,7 +143,7 @@ def createConnection(f_key, connectionFile, show, verbose):
             if addUser.lower() != "y": # if anything but 'y' was given
                 break # break out of while loop
             else: # reset variables
-                userName = ""
+                username = ""
                 passwd1 = ""
                 passwd2 = ""
         
@@ -151,7 +151,8 @@ def createConnection(f_key, connectionFile, show, verbose):
         if verbose:
             print("\n--- Encrypting passwords ...")
         for i in range(0, len(userList)):
-            cryptPasswdList.append(f_key.encrypt(passwdList[i].encode())) # encrypt password and append to encrypted password as bytes
+            cryptPasswdList.append(encryptPassword(f_key, passwdList[i], show, verbose))
+            #cryptPasswdList.append(f_key.encrypt(passwdList[i].encode())) # encrypt password and append to encrypted password as bytes
 
             
         # display all values and ask if correct
@@ -166,7 +167,8 @@ def createConnection(f_key, connectionFile, show, verbose):
                 print("Pass " + str(i + 1) + ": " + passwdList[i])
             else:
                 print("\nUser " + str(i + 1) + ": " + userList[i])
-                print("Pass " + str(i + 1) + ": " + str(cryptPasswdList[i].decode()))
+                print("Pass " + str(i + 1) + ": " + cryptPasswdList[i])
+                
         print("\nIs this correct")
         correct = input("(Y/n/q) ? ")
         
@@ -178,28 +180,28 @@ def createConnection(f_key, connectionFile, show, verbose):
             
     if verbose:
         for i in range(0, len(userList)):
-            enc = cryptPasswdList[i] # encrypted password
-            print("\n--- Encrypted password " + str(i + 1) + ": " + str(enc))
+            cryptPasswd = cryptPasswdList[i] # encrypted password
+            print("\n--- Encrypted password " + str(i + 1) + ": " + cryptPasswd)
             if show:
-                dec = f_key.decrypt(enc) # decrypted password
-                plain = bytes(dec).decode("utf-8") # plain text password
-                print("--- Plain text password " + str(i + 1) + ": " + str(plain))
+                print("\n--- Plain text password " + str(i + 1) + ": " + decryptPassword(f_key, cryptPasswd, verbose))
+                #dec = f_key.decrypt(enc) # decrypted password
+                #plain = bytes(dec).decode("utf-8") # plain text password
+                #print("--- Plain text password " + str(i + 1) + ": " + str(plain))
         
     print("\nAdding new connection ...") 
     
-    writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdList, verbose)
+    writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptPasswdList, show, verbose)
     
-def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdList, verbose):    
+def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptPasswdList, show, verbose):    
     exUsers = 0
     
     config = configparser.ConfigParser()
-    
     config.read(connectionFile)  # read config file
 
     if verbose:
         print("Adding " + str(len(userList)) + " users")
 
-    try: # add section (IP)
+    try: # add section [IP]
         config.add_section(ip) # raises exception if ip already is a section
     except configparser.DuplicateSectionError:
         print("\nIP " + ip + " already exist")
@@ -209,20 +211,20 @@ def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdLi
     except:
         config[ip]['hostname'] = hostName # write host name to config
     else:
-        print("Host name is already set to " + oldHostName)
-        if oldHostName != hostName: # if new port differs from old
-            print("Updating hostname with " + hostName)
-            config.set(ip, 'hostname', hostName)
+        if oldHostName == hostName:
+            print("Host name is already set to " + oldHostName)
+        else: # if new port differs from old
+            print("Updating hostname from " + oldHostName + " with " + hostName)
         
     try: # add port number
         oldPort = config.get(ip, 'port') # check if port is present in section
     except:
         config[ip]['port'] = str(port) # write port to config
     else:
-        print("Port is already set to " + oldPort)
-        if oldPort != str(port): # if new port differs from old
-            print("Updating port with " + str(port))
-            config.set(ip, 'port', str(port))
+        if oldPort == str(port):
+            print("Port is already set to " + oldPort)
+        else: # if new port differs from old
+            print("Updating port from " + oldPort + " with " + str(port))
             
     options = config.options(ip) # load all options in section
     
@@ -233,17 +235,20 @@ def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdLi
     if verbose:
         print("\n--- Users to add: " + str(len(userList)))
         print("    Existing users: " + str(exUsers))
-              
-    delUserList = []
+    else:
+        if exUsers >= 1:
+            print("\nThere was already " + str(exUsers) + " users for IP '" + ip + "'")
+        
+    delUserList = [] # will contain usernames that exist both in section and in the add-list 
     if verbose:
         print("\n--- Checking for existing entries ...")
-    for i in range(0, len(userList)):            
-        for ii in range(0, exUsers):
-            oldUserName = config.get(ip, 'username' + str(ii))
+    for i in range(0, len(userList)): # count up to number if users that is to be added
+        for ii in range(0, exUsers): # count up to number of users already in this section
+            oldUsername = config.get(ip, 'username' + str(ii)) # username for 'username#'
             if verbose:
-                print("    Checking new user: " + userList[i] + " with index: " + str(i))
-                print("    against username" + str(ii) + ": " + oldUserName)
-            if userList[i] == oldUserName:
+                print("    Checking new user: " + userList[i] + " with index: " + str(i) + 
+                      ", against username" + str(ii) + ": " + oldUsername)
+            if userList[i] == oldUsername:
                 print("User " + userList[i] + " already exists")
                 if verbose:
                     print("--- Will not add new user with index: " + str(i))
@@ -254,24 +259,21 @@ def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdLi
             print("\n--- Not adding " + str(len(delUserList)) + " out of " + str(len(userList)) + " indexes:")
         for delUser in delUserList:
             if verbose:
-                delUserIndex = userList.index(delUser) 
+                delUserIndex = userList.index(delUser) #  get the index-number for username in add-list
                 print("    Index: " + str(delUserIndex) + ", Username: " + userList[delUserIndex])
-            userList.remove(delUser) # delete the username, with password, that was to be added
-            cryptPasswdList.pop(delUserIndex)
+            userList.remove(delUser) # delete the username from add-list
+            cryptPasswdList.pop(delUserIndex) # delete the password with that index-number
         if verbose:
             print("    Users left to add: " + str(len(userList)))
-            
-                    
-                  
-                       
-
-    print("\nThere was already " + str(exUsers) + " users for IP '" + ip + "'")
         
     if verbose:
         print("\n--- Adding connection ...")
         print("    IP:            " + ip)
         print("    Host name:     " + hostName)
+    config.set(ip, 'hostname', hostName)
+    if verbose:
         print("    Port:          " + str(port))    
+    config.set(ip, 'port', str(port))
     
     if len(userList) == 0:
         if verbose:
@@ -279,14 +281,20 @@ def writeConnections(connectionFile, ip, hostName, port, userList, cryptPasswdLi
     else:
         for i in range(0 + exUsers, len(userList) + exUsers): # start counting at number of existing users +1, count up to number of existing users + number of users to be added
             if verbose:
-                print("\n    User " + str(i + 1) + ":     " + userList[i - exUsers])
-                print("    Password " + str(i + 1) + ": " + str(cryptPasswdList[i - exUsers]))
-            
+                print("\n    User " + str(i + 1) + ":     " + userList[i - exUsers])            
             config[ip]['username' + str(i)] = userList[i - exUsers]
             
-            passBytes = cryptPasswdList[i - exUsers]
-            passString = passBytes.decode()
-            config[ip]['password' + str(i)] = passString
+            #passBytes = cryptPasswdList[i - exUsers]
+            #passString = passBytes.decode()
+            #config[ip]['password' + str(i)] = passString
+            if verbose:
+                if show:
+                    print("    Password " + str(i + 1) + ": " + decryptPassword(f_key, cryptPasswdList[i - exUsers], verbose))
+                else:
+                    print("    Password " + str(i + 1) + ": " + cryptPasswdList[i - exUsers])
+                
+                    
+            config[ip]['password' + str(i)] = cryptPasswdList[i - exUsers]
     
     with open(connectionFile, 'w') as configfile:
         config.write(configfile)

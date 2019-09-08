@@ -102,10 +102,24 @@ def runSubprocess(cmd, verbose):
     returnCode = response.returncode
     if returnCode != 0:
         print("\nProcess exited uncleanly\nwith exit code " + str(response.returncode))
+        
+def encryptPassword(f_key, plainTextPass, show, verbose):
+    if verbose:
+        if show:
+            print("\n--- Encrypting password " + plainTextPass)
+        else:
+            print("\n--- Encrypting password *****")
+        
+    encPasswd = f_key.encrypt(plainTextPass.encode()).decode()
+        
+    if verbose:
+        print("\n--- Encrypted password: " + encPasswd)
+        
+    return encPasswd
               
 def decryptPassword(f_key, cryptPasswd, verbose):
     if verbose:
-        print("\n--- Dekrypting password ...")
+        print("\n--- Decrypting password ...")
         print("    " + cryptPasswd)
         
     plainTextPass = bytes(f_key.decrypt(cryptPasswd.encode())).decode("utf-8")

@@ -14,121 +14,142 @@ def editConnections(f_key, connectionFile, show, verbose):
     if show:
         print("----------------------------------------------------")
     
-    ip, host, port, userNo, userName, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
+    ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
+    
+    maxNumber = 5
     
     print("\nSelect what to edit:")
     print(" 1: IP:       " + ip)
     print(" 2: Hostname: " + host)
     print(" 3: Port    : " + port)
-    print(" 4: Username: " + userName)
-    if show:
-        print(" 5: Password: " + decryptPassword(f_key, cryptPasswd, verbose))
+    if userNo >= 0:
+        print(" 4: Username: " + username)
+        if show:
+            print(" 5: Password: " + decryptPassword(f_key, cryptPasswd, verbose))
+        else:
+            print(" 5: Password: *****")
     else:
-        print(" 5: Password: *****")
+        maxNumber =  3
         
     print("\nEnter number:")
     while True:
         selection = input(" ? ")
         
         if not selection:
-            print("You must select a number 1-5\nTry again")
+            print("You must select a number 1-" + str(maxNumber) + "\nTry again")
         else:
             try:
                 selection = int(selection)
             except:
                 print("Only integers allowed\nTry again:")
             else:
-                if selection <= 0 or selection > 5:
-                    print("Number must be 1-5")
+                if selection <= 0 or selection > maxNumber:
+                    print("Number must be 1-" + str(maxNumber))
                 else:
                     break
                 
     if selection == 1:
-        changeSectionName(ip, connectionFile, show, verbose)
+        changeSectionName(ip, host, connectionFile, show, verbose)
     elif selection == 2: # option, value, connectionFile, show, verbose
         changeValue(ip, "Hostname", host, connectionFile, show, verbose)
     elif selection == 3:
         changeValue(ip, "Port", port, connectionFile, show, verbose)
-    elif selection == 4: # f_key, userNo, oldUserName, connectionFile, show, verbosee
-        changeUsername(f_key, ip, userNo, userName, connectionFile, show, verbose)
+    elif selection == 4: # f_key, userNo, oldUsername, connectionFile, show, verbosee
+        changeUsername(f_key, ip, userNo, username, cryptPasswd, connectionFile, show, verbose)
     elif selection == 5:
-        changeValue(f_key, ip, userNo, True, "Password", userName, cryptPasswd, connectionFile, show, verbose)
+        changePassword(f_key, ip, userNo, username, cryptPasswd, connectionFile, show, verbose)
                 
-def updateConnection(ip, host, port, userName, plainTextPass, connectionFile, show, verbose):
+def updateConnection(ip, host, port, username, plainTextPass, connectionFile, show, verbose):
     
     config = configparser.ConfigParser()
     config.read(connectionFile)  # read config file
     
-def changeSectionName(oldIP, connectionFile, show, verbose):
+def changeSectionName(oldIP, host, connectionFile, show, verbose):
     if verbose:
         print("\n--- Changing name \n    on section [" + oldIP + "]")
     
     import ipaddress
     
+    deleteSection = False
+    
     while True: # input ip
-            print("\nEnter new IP")
-            newIP = input("[" + oldIP + "] ? ")
-            
-            if not newIP or newIP == oldIP: # if no IP stated, accept default IP
-                newIP = oldIP
-                print("\nYou've entered the same IP again\nKeep old IP?")
-                correct =input("(Y/n) ? ")
-                if correct.lower() != "n": # if anything but 'n' was stated
-                    print("\nKeeping old IP")
-                    break
+        print("\nEnter new IP, or 'd' to delete")
+        newIP = input("[" + oldIP + "]/d ? ")
+        
+        if newIP.lower() == "d":
+            deleteSection = True
+            break
+        
+        if not newIP or newIP == oldIP: # if no IP stated, accept default IP
+            newIP = oldIP
+            print("\nYou've entered the same IP again\nKeep old IP?")
+            correct =input("(Y/n) ? ")
+            if correct.lower() != "n": # if anything but 'n' was stated
+                print("\nKeeping old IP")
+                break
+        else:
+            if verbose:
+                print("--- Checking if IP is valid ...")
+                
+            try:
+                ipaddress.ip_address(newIP) # raises an exception if IP is not correct
+            except ValueError:
+                print("\n" + newIP + " is not a valid IP\nTry again")
+            except:
+                print("\n" + newIP + " is a bad input\nTry again")
             else:
                 if verbose:
-                    print("--- Checking if IP is valid ...")
-                    
-                try:
-                    ipaddress.ip_address(newIP) # raises an exception if IP is not correct
-                except ValueError:
-                    print("\n" + newIP + " is not a valid IP\nTry again")
-                except:
-                    print("\n" + newIP + " is a bad input\nTry again")
-                else:
-                    if verbose:
-                        print("+++ Correct!")
-                    break # break out of while loop
+                    print("+++ Correct!")
+                break # break out of while loop
                 
-    if oldIP != newIP:
-        print("\nChanging IP from " + oldIP + " to " + newIP)
+    if verbose:
+        print("\n--- Reading config file ...")
+    config = configparser.ConfigParser()
+    config.read(connectionFile)  # read config file
+            
+    if not deleteSection:    
+        if oldIP != newIP:
+            print("\nChanging IP from " + oldIP + " to " + newIP)
+            
+            if verbose:
+                print("    Reading items from old section ...")      
+            oldSectionItems = config.items(oldIP) # read items from section to rename
+            if verbose:
+                print("    Read " + str(len(oldSectionItems)) + " items")
+            
+            if verbose:
+                print("    Adding new section ...")            
+            config.add_section(newIP) # create section with the new name
+            
+            users = 0
+            if verbose:
+                print("    Writing old items to new section ...")  
+            for option,value in oldSectionItems: # read old items
+                if option.startswith("username"):
+                    users += 1
+                config.set(newIP, option, value) # add old items to new section
+            if verbose:
+                print("    Added " + str(users) + " users")
+            
+            if verbose:
+                print("    Deleting old section ...")  
+            config.remove_section(oldIP) # delete old section
+        else:
+            print("\nNo changes made")
+    else: # delete section
+        print("\nAre you sure you want to delete connection for " + oldIP + ", ", host)
+        delete = input("(y/N) ? ")
         
-        if verbose:
-            print("\n--- Reading config file ...")
-        config = configparser.ConfigParser()
-        config.read(connectionFile)  # read config file
+        if delete.lower() == "y":
+            print("\nDeleting connection for IP " + oldIP)
+            config.remove_section(oldIP) # delete section
+        else:
+            print("\nNo changes made")
         
-        if verbose:
-            print("    Reading items from old section ...")      
-        oldSectionItems = config.items(oldIP) # read items from section to rename
-        if verbose:
-            print("    Read " + str(len(oldSectionItems)) + " items")
-        
-        if verbose:
-            print("    Adding new section ...")            
-        config.add_section(newIP) # create section with the new name
-        
-        users = 0
-        if verbose:
-            print("    Writing old items to new section ...")  
-        for option,value in oldSectionItems: # read old items
-            if option.startswith("username"):
-                users += 1
-            config.set(newIP, option, value) # add old items to new section
-        if verbose:
-            print("    Added " + str(users) + " users")
-        
-        if verbose:
-            print("    Deleting old section ...")  
-        config.remove_section(oldIP) # delete old section
-        
-        if verbose:
-            print("    Writing to config file ...")  
-        with open(connectionFile, 'w') as configfile:
-            config.write(configfile) # write everything to config file
-    else:
-        print("\nNo changes made")
+    if verbose:
+        print("\n--- Writing to config file ...")  
+    with open(connectionFile, 'w') as configfile:
+        config.write(configfile) # write everything to config file
     
 def changeValue(ip, option, oldValue, connectionFile, show, verbose):    
     if verbose:
@@ -145,20 +166,20 @@ def changeValue(ip, option, oldValue, connectionFile, show, verbose):
         if verbose:
             print("\n--- Asking " + ip + " for hostname ...")
         try:
-            hostName = socket.gethostbyaddr(ip)[0]
+            hostname = socket.gethostbyaddr(ip)[0]
         except:
-            hostName = ""
+            hostname = ""
             onError(4, "Could not get hostname")
         else:
             if verbose:
-                print("    OK\n    Got " + hostName)
+                print("    OK\n    Got " + hostname)
             
         while True:  # input host name
-            if hostName:
+            if hostname:
                 print("\nHost name")
-                newValue = input("[" + hostName + "] ? ")
+                newValue = input("[" + hostname + "] ? ")
                 if not newValue: # if no value stated
-                    newValue = hostName
+                    newValue = hostname
             else:
                 print("\nHost name")
                 newValue = input("[" + oldValue + "] ? ")
@@ -173,10 +194,10 @@ def changeValue(ip, option, oldValue, connectionFile, show, verbose):
                     print("\nKeeping old " + option.lower())
                     break
             else:
-                if not newValue and not hostName: # if no host name stated and we could not probe a hostname
+                if not newValue and not hostname: # if no host name stated and we could not probe a hostname
                     print("\nYou must state a hostname\nTry again")
-                elif not newValue and hostName: # if no hostname stated and we could probe a hostname
-                    newValue = hostName
+                elif not newValue and hostname: # if no hostname stated and we could probe a hostname
+                    newValue = hostname
                     break
                 elif newValue:
                     break
@@ -228,23 +249,102 @@ def changeValue(ip, option, oldValue, connectionFile, show, verbose):
     else:
         print("\nNo changes made")
     
-def changeUsername(f_key, ip, userNo, oldUsername, connectionFile, show, verbose):    
+def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFile, show, verbose):    
     if verbose:
         print("\n--- Changing username for username" + str(userNo) + " \n    in section [" + ip + "]")
+    
+    print("\nOld username: " + oldUsername)
+    
+    if verbose:
+        print("\n--- User number: " + str(userNo))
+    
+    deleteUser = False
+    
+    while True: # input ip
+        print("\nEnter new username, or 'd' to delete")
+        newUsername = input("[" + oldUsername + "]/d ? ")
         
+        if newUsername.lower() == "d":
+            deleteUser = True
+            break
+        
+        if not newUsername or newUsername == oldUsername: # if no IP stated, accept default IP
+            newUsername = oldUsername
+            print("\nYou've entered the same username again\nKeep old username?")
+            correct =input("(Y/n) ? ")
+            if correct.lower() != "n": # if anything but 'n' was stated
+                print("\nKeeping old username")
+                break
+        else:
+            break
+            
     if verbose:
         print("\n--- Reading config file ...")
     config = configparser.ConfigParser()
-    config.read(connectionFile)  # read config file
-    
-    print("\nOld username: " + oldUsername)
+    config.read(connectionFile)  # read config file        
+            
+    if not deleteUser:
+        if oldUsername != newUsername:
+            print("\nChanging username from " + oldUsername + " to " + newUsername)
+            if verbose:
+                print("\n--- Writing new username ...")
+            config.set(ip, "username" + str(userNo), newUsername)
+        else:
+            print("\nNo changes made")        
+        
+    else: # delete user
+        print("\nAre you sure you want to delete user " + oldUsername)
+        delete = input("(y/N) ? ")
+        
+        if delete.lower() == "y":
+            print("\nDeleting user " + oldUsername + " with password")
+            config.remove_option(ip, "username" + str(userNo)) # delete user and pass
+            config.remove_option(ip, "password" + str(userNo))
+            
+            # move the last user (if there is one) to the now empty username#
+            remainUsers = 0
+            options = config.options(ip)
+            for option in options:
+                if option.startswith('username'):
+                    remainUsers += 1
+            if verbose:
+                print("\n--- " + str(remainUsers) + " users now remains")
+            if remainUsers >= 1 and remainUsers != userNo: # if there are more than one users remaining and it wasn't the last user we deleted
+                if verbose:
+                    print("\n--- Getting username and password for user " + str(remainUsers))
+                oldUser = config.get(ip, "username" + str(remainUsers)) # read old user and pass
+                oldPasswd = config.get(ip, "password" + str(remainUsers))
+                if verbose:
+                    print("\n--- Moving user " + oldUser)
+                    if show:
+                        print("    with password " + decryptPassword(f_key, oldPasswd, verbose))
+                    else:
+                        print("    with password " + oldPasswd)
+                config.remove_option(ip, "username" + str(remainUsers)) # delete old user and pass
+                config.remove_option(ip, "password" + str(remainUsers))
+                config.set(ip, ("username" + str(userNo)), oldUser) # rewrite old user and pass
+                config.set(ip, ("password" + str(userNo)), oldPasswd)
+        else:
+            print("\nNo changes made")
+        
+    if verbose:
+        print("\n--- Writing to config file ...")  
+    with open(connectionFile, 'w') as configfile:
+        config.write(configfile) # write everything to config file
     
     #if show:
     #    print("\nOld password: " + decryptPassword(f_key, value, verbose))
     #else:
     #    print("\nOld password: *****")
    
-    
+def changePassword(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFile, show, verbose):    
+    if verbose:
+        print("\n--- Changing password for username" + str(userNo) + " \n    in section [" + ip + "]")
+        
+    if show:
+        print("\nOld password: " + decryptPassword(f_key, oldCryptPasswd, verbose))
+    else:
+        print("\nOld passwd: *****")
     
     
     
