@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import sys, ipaddress, configparser, socket, validators
+import sys, configparser, socket, validators
 
 from getpass import getuser, getpass
 

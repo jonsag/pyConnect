@@ -9,7 +9,7 @@ from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess, decryp
 def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionTypeNo = 0
     
-    connectionTypes = ['ssh', 'sftp', 'scp', 'ssh -X', 'ssh -Y', 'ssh-copy-id']
+    connectionTypes = ['ssh', 'sftp', 'ssh -X', 'ssh -Y',  'scp',  'ssh-copy-id', 'run command on multiple hosts']
 
     print("\nSelect connection type\n----------")
     for connectionType in connectionTypes:
@@ -39,8 +39,6 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
     if connectionType == "ssh":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
         
-        print("User# " + str(userNo))
-        
         if userNo >= 0:
             print("\nWill connect to " + host + " at " + ip + " on port " + port + 
                   " as " + username + " who has user index " + str(userNo))
@@ -53,7 +51,20 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
             #paramikoConnect(f_key, ip, port, username, cryptPasswd, verbose)
         else:
             print("\nCan't make a connection")
-                    
+    elif connectionType == "sftp":
+        ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
+        
+        if userNo >= 0:
+            print("\nWill connect to " + host + " at " + ip + " on port " + port + 
+                  " as " + username + " who has user index " + str(userNo))
+        
+            if show:
+                print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
+            
+            sftpConnect(f_key, ip, port, username, cryptPasswd, verbose)
+        else:
+            print("\nCan't make a connection")                
+            
     elif connectionType == "ssh-copy-id":
         keyFile = sshCreateKey(verbose)
         
@@ -308,11 +319,18 @@ def pxsshConnect(f_key, ip, port, username, cryptPasswd, verbose):
         print("pxssh failed on login.")
         print(str(e))
             
-def pxsshPrint(input):
-    lines = input.split(b'\r\n')
+def pxsshPrint(output):
+    lines = output.split(b'\r\n')
     
     for line in lines:
         print(line.decode())
+        
+def sftpConnect(f_key, ip, port, username, cryptPasswd, verbose):
+    if verbose:
+        print("\n--- Connecting with sftp ...")
+    
+    cmd = "sftp " + " -P " + port + " -o UserKnownHostsFile=" + knownHostsFile + " " + username + "@" + ip
+    runSubprocess(cmd, verbose)
             
         
         
