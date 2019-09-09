@@ -18,10 +18,11 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
         
     print("\nEnter number:")
     while True:
-        selection = input(" ? ")
+        selection = input("(1) ? ")
         
         if not selection:
-            print("You must select a number 1-" + str(connectionTypeNo) + "\nTry again")
+            selection = 1
+            break
         else:
             try:
                 selection = int(selection)
@@ -158,15 +159,18 @@ def selectConnection(f_key, connectionFile, show, verbose):
     while True:
         ipSelection = input(" ? ")
         
-        try:
-            ipSelection = int(ipSelection)
-        except:
-            print("Only integers allowed\nTry again:")
-        else:
-            if ipSelection <= 0 or ipSelection > connectionNo:
-                print("Number must be 1-" + str(connectionNo))
+        if ipSelection:
+            try:
+                ipSelection = int(ipSelection)
+            except:
+                print("\nOnly integers allowed\nTry again:")
             else:
-                break
+                if ipSelection <= 0 or ipSelection > connectionNo:
+                    print("Number must be 1-" + str(connectionNo))
+                else:
+                    break
+        else:
+            print("\nSelect number 1-" + str(connectionNo) + "\nTry again")
             
     for connection in connectionList:
         if int(connection['number']) == ipSelection:
@@ -201,15 +205,18 @@ def selectConnection(f_key, connectionFile, show, verbose):
         while True:
             userSelection = input(" ? ")
             
-            try:
-                userSelection = int(userSelection)
-            except:
-                print("Only integers allowed\nTry again:")
-            else:
-                if userSelection <= 0 or userSelection > userNo:
-                    print("Number must be 1-" + str(userNo))
+            if userSelection:
+                try:
+                    userSelection = int(userSelection)
+                except:
+                    print("\nOnly integers allowed\nTry again:")
                 else:
-                    break
+                    if userSelection <= 0 or userSelection > userNo:
+                        print("Number must be 1-" + str(userNo))
+                    else:
+                        break
+            else:
+                print("\nSelect number 1-" + str(userNo) + "\nTry again")
             
         for user in userList:
             if int(user['number']) == userSelection:
