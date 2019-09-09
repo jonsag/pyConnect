@@ -36,7 +36,7 @@ def editConnections(f_key, connectionFile, show, verbose):
         selection = input(" ? ")
         
         if not selection:
-            print("You must select a number 1-" + str(maxNumber) + "\nTry again")
+            print("\nYou must select a number 1-" + str(maxNumber) + "\nTry again")
         else:
             try:
                 selection = int(selection)
@@ -328,6 +328,7 @@ def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFil
                 print("\n--- Writing to config file ...")  
             with open(connectionFile, 'w') as configfile:
                 config.write(configfile) # write everything to config file
+            changedUsername = False
         else:
             print("\nNo changes made")
             
@@ -371,7 +372,7 @@ def changePassword(f_key, ip, userNo, oldCryptPasswd, connectionFile, show, verb
         if not passwd1: # if no password is given accept the default one
             passwd1 = decryptPassword(f_key, oldCryptPasswd, verbose)
             
-        print("Enter password again")
+        print("\nEnter password again")
         if show:
             passwd2 = input("[" + decryptPassword(f_key, oldCryptPasswd, verbose) + "] ? ") # enter password invisible
         else:
