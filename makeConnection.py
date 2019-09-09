@@ -19,11 +19,8 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
     print("\nEnter number:")
     while True:
         selection = input("(1) ? ")
-        
-        if not selection:
-            selection = 1
-            break
-        else:
+            
+        if selection:
             try:
                 selection = int(selection)
             except:
@@ -33,6 +30,9 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
                     print("Number must be 1-" + str(connectionTypeNo))
                 else:
                     break
+        else:
+            selection = 1
+            break
             
     connectionType = connectionTypes[int(selection) - 1]
     
@@ -157,7 +157,7 @@ def selectConnection(f_key, connectionFile, show, verbose):
         
     print("\nEnter number:")
     while True:
-        ipSelection = input(" ? ")
+        ipSelection = input("(1) ? ")
         
         if ipSelection:
             try:
@@ -170,7 +170,9 @@ def selectConnection(f_key, connectionFile, show, verbose):
                 else:
                     break
         else:
-            print("\nSelect number 1-" + str(connectionNo) + "\nTry again")
+            ipSelection = 1
+            break
+            #print("\nSelect number 1-" + str(connectionNo) + "\nTry again")
             
     for connection in connectionList:
         if int(connection['number']) == ipSelection:
@@ -203,7 +205,7 @@ def selectConnection(f_key, connectionFile, show, verbose):
     if userNo >= 1:
         print("\nEnter number:")
         while True:
-            userSelection = input(" ? ")
+            userSelection = input("(1) ? ")
             
             if userSelection:
                 try:
@@ -216,7 +218,9 @@ def selectConnection(f_key, connectionFile, show, verbose):
                     else:
                         break
             else:
-                print("\nSelect number 1-" + str(userNo) + "\nTry again")
+                userSelection = 1
+                break
+                #print("\nSelect number 1-" + str(userNo) + "\nTry again")
             
         for user in userList:
             if int(user['number']) == userSelection:
