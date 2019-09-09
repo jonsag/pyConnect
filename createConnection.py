@@ -39,10 +39,11 @@ def createConnection(f_key, connectionFile, show, verbose):
         
     print("\nEnter number:")
     while True:
-        selection = input(" ? ")
+        selection = input("(1) ? ")
         
         if not selection:
-            print("You must select a number 1-" + str(sectionNo) + "\nTry again")
+            selection = 1
+            break
         else:
             try:
                 selection = int(selection)
@@ -58,12 +59,6 @@ def createConnection(f_key, connectionFile, show, verbose):
         newSection = True
     
     while True: # run until all users are added
-
-        # read sections
-        # present sections and one more option to add new section
-        
-
-        
         if newSection: # if select new section, continue here    
             while True: # input ip
                 print("\nRemote IP")
@@ -84,6 +79,18 @@ def createConnection(f_key, connectionFile, show, verbose):
                 else:
                     if verbose:
                         print("    OK")
+                        print("\n--- Checking if " + ip + " is already in sections ...")
+                    for existingIP in oldSections:
+                        if existingIP == ip:
+                            if verbose:
+                                print("    Found matching ip")
+                            else:
+                                print("\n" + ip + " is already added\nUsing old hostname and port")
+                            oldPort = config.get(oldIP, 'port')
+                            oldHostName = config.get(oldIP, 'hostname')
+                            if verbose:
+                                print("    Using old hostname " + oldHostName + " and port " + oldPort)
+                            newSection = False
                     break # break out of while loop
                  
             if verbose:
@@ -162,8 +169,27 @@ def createConnection(f_key, connectionFile, show, verbose):
                 if username in userList: # if the username is already given in this session
                     print("\nUsername already in list\nTry again")
                 else:
-                    userList.append(username) # append username to list
-                    break # break out of while loop
+                    if verbose:
+                        print("\n--- Trying to read usernames from connections")
+                    try:
+                        options = config.options(ip)
+                    except:
+                        if verbose:
+                            print("    No section for ip " + ip)
+                        break # this username not added in this session and ip not in connections
+                    else:
+                        isNewUser = True
+                        for option in options:
+                            if option.startswith('username'):
+                                if config.get(ip, option) == username:
+                                    if verbose:
+                                        print("    Username " + username + " already in connections")
+                                    isNewUser = False
+                    if isNewUser:
+                        userList.append(username) # append username to list
+                        break # break out of while loop
+                    else:
+                        print("\nUsername already exists for this IP\nTry again")
     
             while True: #input password
                 print("\nPassword " + str(userNo))
