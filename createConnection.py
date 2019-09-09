@@ -19,75 +19,128 @@ def createConnection(f_key, connectionFile, show, verbose):
     defaultUser = getuser() # user running this script
     defaultPasswd = "xxxxx"
     
-    while True: # run until all users are added
-        while True: # input ip
-            print("\nRemote IP")
-            ip = input("[" + defaultIP + "] ? ")
-            
-            if not ip: # if no IP stated, accept default IP
-                ip = defaultIP
-            
-            if verbose:
-                print("--- Checking if IP is valid ...")
-                
-            try:
-                ipaddress.ip_address(ip) # raises an exception if IP is not correct
-            except ValueError:
-                print("\n" + ip + " is not a valid IP\nTry again")
-            except:
-                print("\n" + ip + " is a bad input\nTry again")
-            else:
-                if verbose:
-                    print("    OK")
-                break # break out of while loop
-             
-        if verbose:
-            print("\n--- Asking " + ip + " for hostname ...")
-        try:
-            hostName = socket.gethostbyaddr(ip)[0] # probe for hostname
-        except:
-            hostName = ""
-            onError(4, "Could not get hostname")
+    newSection = False
+    sectionNo = 1
+    
+    if verbose:
+        print("\n--- Reading config file ...")
+    config = configparser.ConfigParser()
+    config.read(connectionFile)  # read config file
+    
+    oldSections = config.sections()
+    
+    print("\n1: Add new")
+    
+    for oldIP in oldSections:
+        sectionNo += 1
+        oldPort = config.get(oldIP, 'port')
+        oldHostName = config.get(oldIP, 'hostname')
+        print(str(sectionNo) + ": " + oldIP + ", " + oldHostName)
+        
+    print("\nEnter number:")
+    while True:
+        selection = input(" ? ")
+        
+        if not selection:
+            print("You must select a number 1-" + str(sectionNo) + "\nTry again")
         else:
-            if verbose:
-                print("    OK\n    Got " + hostName)
-            
-        while True:  # input host name
-            if hostName: # if hostname could be probed
-                print("\nHost name")
-                newHostName = input("[" + hostName + "] ? ")
-            else:
-                print("\nHost name")
-                newHostName = input(" ? ")
-            
-            if not newHostName and not hostName: # if no hostname stated and no hostname could be probed
-                print("\nYou must state a hostname\nTry again")
-            elif not newHostName and hostName: # if no hostname stated but hostname was probed
-                break
-            else:
-                hostName = newHostName
-                break # break out of while loop
-                
-        while True: #input port
-            print("\nRemote port")
-            port = input("[" + defaultPort + "] ? ")
-            
-            if not port: # if no port stated use default port
-                port = defaultPort
-            
             try:
-                port = int(port) # raises an exception if port is not an integer
+                selection = int(selection)
             except:
-                print("\n" + str(port) + "is not an integer\nTry again")
-            else:                
+                print("Only integers allowed\nTry again:")
+            else:
+                if selection <= 0 or selection > sectionNo:
+                    print("Number must be 1-" + str(sectionNo))
+                else:
+                    break
+                
+    if selection == 1:
+        newSection = True
+    
+    while True: # run until all users are added
+
+        # read sections
+        # present sections and one more option to add new section
+        
+
+        
+        if newSection: # if select new section, continue here    
+            while True: # input ip
+                print("\nRemote IP")
+                ip = input("[" + defaultIP + "] ? ")
+                
+                if not ip: # if no IP stated, accept default IP
+                    ip = defaultIP
+                
                 if verbose:
-                    print("\n--- Checking if port is valid ...")
-                if port >= 0 and port <= 65535: # port must be between 0 and 65535
+                    print("--- Checking if IP is valid ...")
+                    
+                try:
+                    ipaddress.ip_address(ip) # raises an exception if IP is not correct
+                except ValueError:
+                    print("\n" + ip + " is not a valid IP\nTry again")
+                except:
+                    print("\n" + ip + " is a bad input\nTry again")
+                else:
                     if verbose:
                         print("    OK")
                     break # break out of while loop
+                 
+            if verbose:
+                print("\n--- Asking " + ip + " for hostname ...")
+            try:
+                hostName = socket.gethostbyaddr(ip)[0] # probe for hostname
+            except:
+                hostName = ""
+                onError(4, "Could not get hostname")
+            else:
+                if verbose:
+                    print("    OK\n    Got " + hostName)
+        else:
+            ip = oldIP
+        
+        if newSection: 
+            while True:  # input host name
+                if hostName: # if hostname could be probed
+                    print("\nHost name")
+                    newHostName = input("[" + hostName + "] ? ")
                 else:
-                    print("\n" + str(port) + " is outside the range 0-65535\nTry again")
+                    print("\nHost name")
+                    newHostName = input(" ? ")
+                
+                if not newHostName and not hostName: # if no hostname stated and no hostname could be probed
+                    print("\nYou must state a hostname\nTry again")
+                elif not newHostName and hostName: # if no hostname stated but hostname was probed
+                    break
+                else:
+                    hostName = newHostName
+                    break # break out of while loop
+        else:
+            hostName = oldHostName
+            
+        if newSection:
+            while True: #input port
+                print("\nRemote port")
+                port = input("[" + defaultPort + "] ? ")
+                
+                if not port: # if no port stated use default port
+                    port = defaultPort
+                
+                try:
+                    port = int(port) # raises an exception if port is not an integer
+                except:
+                    print("\n" + str(port) + "is not an integer\nTry again")
+                else:                
+                    if verbose:
+                        print("\n--- Checking if port is valid ...")
+                    if port >= 0 and port <= 65535: # port must be between 0 and 65535
+                        if verbose:
+                            print("    OK")
+                        break # break out of while loop
+                    else:
+                        print("\n" + str(port) + " is outside the range 0-65535\nTry again")
+        else:
+            port = oldPort
         
         userNo = 0 # stores number of users to be added
         userList = [] # stores user names to be added
@@ -195,6 +248,8 @@ def createConnection(f_key, connectionFile, show, verbose):
 def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptPasswdList, show, verbose):    
     exUsers = 0
     
+    if verbose:
+        print("\n--- Reading config file ...")
     config = configparser.ConfigParser()
     config.read(connectionFile)  # read config file
 
@@ -258,8 +313,8 @@ def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptP
         if verbose:
             print("\n--- Not adding " + str(len(delUserList)) + " out of " + str(len(userList)) + " indexes:")
         for delUser in delUserList:
+            delUserIndex = userList.index(delUser) #  get the index-number for username in add-list
             if verbose:
-                delUserIndex = userList.index(delUser) #  get the index-number for username in add-list
                 print("    Index: " + str(delUserIndex) + ", Username: " + userList[delUserIndex])
             userList.remove(delUser) # delete the username from add-list
             cryptPasswdList.pop(delUserIndex) # delete the password with that index-number
