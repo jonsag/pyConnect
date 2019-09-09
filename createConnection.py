@@ -14,7 +14,7 @@ def createConnection(f_key, connectionFile, show, verbose):
     print("\nCreate new connection\n----------")
     
     defaultIP = get_ip() # this computers IP
-    hostName = ""
+    hostname = ""
     defaultPort = "22"
     defaultUser = getuser() # user running this script
     defaultPasswd = "xxxxx"
@@ -34,8 +34,8 @@ def createConnection(f_key, connectionFile, show, verbose):
     for oldIP in oldSections:
         sectionNo += 1
         oldPort = config.get(oldIP, 'port')
-        oldHostName = config.get(oldIP, 'hostname')
-        print(str(sectionNo) + ": " + oldIP + ", " + oldHostName)
+        oldHostname = config.get(oldIP, 'hostname')
+        print(str(sectionNo) + ": " + oldIP + ", " + oldHostname)
         
     print("\nEnter number:")
     while True:
@@ -87,43 +87,43 @@ def createConnection(f_key, connectionFile, show, verbose):
                             else:
                                 print("\n" + ip + " is already added\nUsing old hostname and port")
                             oldPort = config.get(oldIP, 'port')
-                            oldHostName = config.get(oldIP, 'hostname')
+                            oldHostname = config.get(oldIP, 'hostname')
                             if verbose:
-                                print("    Using old hostname " + oldHostName + " and port " + oldPort)
+                                print("    Using old hostname " + oldHostname + " and port " + oldPort)
                             newSection = False
                     break # break out of while loop
                  
             if verbose:
                 print("\n--- Asking " + ip + " for hostname ...")
             try:
-                hostName = socket.gethostbyaddr(ip)[0] # probe for hostname
+                hostname = socket.gethostbyaddr(ip)[0] # probe for hostname
             except:
-                hostName = ""
+                hostname = ""
                 onError(4, "Could not get hostname")
             else:
                 if verbose:
-                    print("    OK\n    Got " + hostName)
+                    print("    OK\n    Got " + hostname)
         else:
             ip = oldIP
         
         if newSection: 
             while True:  # input host name
-                if hostName: # if hostname could be probed
+                if hostname: # if hostname could be probed
                     print("\nHost name")
-                    newHostName = input("[" + hostName + "] ? ")
+                    newHostname = input("[" + hostname + "] ? ")
                 else:
                     print("\nHost name")
-                    newHostName = input(" ? ")
+                    newHostname = input(" ? ")
                 
-                if not newHostName and not hostName: # if no hostname stated and no hostname could be probed
+                if not newHostname and not hostname: # if no hostname stated and no hostname could be probed
                     print("\nYou must state a hostname\nTry again")
-                elif not newHostName and hostName: # if no hostname stated but hostname was probed
+                elif not newHostname and hostname: # if no hostname stated but hostname was probed
                     break
                 else:
-                    hostName = newHostName
+                    hostname = newHostname
                     break # break out of while loop
         else:
-            hostName = oldHostName
+            hostname = oldHostname
             
         if newSection:
             while True: #input port
@@ -237,7 +237,7 @@ def createConnection(f_key, connectionFile, show, verbose):
         # display all values and ask if correct
         print("\nNew connection:\n----------")
         print("IP:        " + ip)
-        print("Host name: " + hostName)
+        print("Host name: " + hostname)
         print("Port:      " + str(port))
         
         for i in range(0, len(userList)):
@@ -269,9 +269,9 @@ def createConnection(f_key, connectionFile, show, verbose):
         
     print("\nAdding new connection ...") 
     
-    writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptPasswdList, show, verbose)
+    writeConnections(f_key, connectionFile, ip, hostname, port, userList, cryptPasswdList, show, verbose)
     
-def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptPasswdList, show, verbose):    
+def writeConnections(f_key, connectionFile, ip, hostname, port, userList, cryptPasswdList, show, verbose):    
     exUsers = 0
     
     if verbose:
@@ -288,14 +288,14 @@ def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptP
         print("\nIP " + ip + " already exist")
     
     try: # add host name
-        oldHostName = config.get(ip, 'hostname') # check if host name is present in section
+        oldHostname = config.get(ip, 'hostname') # check if host name is present in section
     except:
-        config[ip]['hostname'] = hostName # write host name to config
+        config[ip]['hostname'] = hostname # write host name to config
     else:
-        if oldHostName == hostName:
-            print("Host name is already set to " + oldHostName)
+        if oldHostname == hostname:
+            print("Host name is already set to " + oldHostname)
         else: # if new port differs from old
-            print("Updating hostname from " + oldHostName + " with " + hostName)
+            print("Updating hostname from " + oldHostname + " with " + hostname)
         
     try: # add port number
         oldPort = config.get(ip, 'port') # check if port is present in section
@@ -350,8 +350,8 @@ def writeConnections(f_key, connectionFile, ip, hostName, port, userList, cryptP
     if verbose:
         print("\n--- Adding connection ...")
         print("    IP:            " + ip)
-        print("    Host name:     " + hostName)
-    config.set(ip, 'hostname', hostName)
+        print("    Host name:     " + hostname)
+    config.set(ip, 'hostname', hostname)
     if verbose:
         print("    Port:          " + str(port))    
     config.set(ip, 'port', str(port))

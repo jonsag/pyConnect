@@ -148,11 +148,11 @@ def selectConnection(f_key, connectionFile, show, verbose):
     for section in sections:
         connectionNo += 1
         
-        hostName = config.get(section, 'hostname')
+        hostname = config.get(section, 'hostname')
         port = config.get(section, 'port')
         
-        print(" " + str(connectionNo) + ": " + section + ", " + hostName)
-        connectionList.append({u'number': connectionNo, u'ip': section, u'host': hostName, u'port': port})
+        print(" " + str(connectionNo) + ": " + section + ", " + hostname)
+        connectionList.append({u'number': connectionNo, u'ip': section, u'host': hostname, u'port': port})
         
     print("\nEnter number:")
     while True:
