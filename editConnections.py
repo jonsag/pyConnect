@@ -6,7 +6,7 @@ import configparser, sys, socket
 
 from makeConnection import selectConnection
 
-from modules import decryptPassword, onError
+from modules import decryptPassword, onError, encryptPassword
 
 def editConnections(f_key, connectionFile, show, verbose):
     print("\nEdit connection\n----------")
@@ -57,7 +57,7 @@ def editConnections(f_key, connectionFile, show, verbose):
     elif selection == 4: # f_key, userNo, oldUsername, connectionFile, show, verbosee
         changeUsername(f_key, ip, userNo, username, cryptPasswd, connectionFile, show, verbose)
     elif selection == 5:
-        changePassword(f_key, ip, userNo, username, cryptPasswd, connectionFile, show, verbose)
+        changePassword(f_key, ip, userNo, cryptPasswd, connectionFile, show, verbose)
                 
 def updateConnection(ip, host, port, username, plainTextPass, connectionFile, show, verbose):
     
@@ -255,12 +255,9 @@ def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFil
     
     print("\nOld username: " + oldUsername)
     
-    if verbose:
-        print("\n--- User number: " + str(userNo))
-    
     deleteUser = False
     
-    while True: # input ip
+    while True: # input username
         print("\nEnter new username, or 'd' to delete")
         newUsername = input("[" + oldUsername + "]/d ? ")
         
@@ -268,7 +265,7 @@ def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFil
             deleteUser = True
             break
         
-        if not newUsername or newUsername == oldUsername: # if no IP stated, accept default IP
+        if not newUsername or newUsername == oldUsername: # if no username stated, accept old username
             newUsername = oldUsername
             print("\nYou've entered the same username again\nKeep old username?")
             correct =input("(Y/n) ? ")
@@ -284,11 +281,13 @@ def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFil
     config.read(connectionFile)  # read config file        
             
     if not deleteUser:
+        changedUsername = False
         if oldUsername != newUsername:
-            print("\nChanging username from " + oldUsername + " to " + newUsername)
+            print("\nChanging username from " + oldUsername + " to " + newUsername + " ...")
             if verbose:
                 print("\n--- Writing new username ...")
             config.set(ip, "username" + str(userNo), newUsername)
+            changedUsername = True
         else:
             print("\nNo changes made")        
         
@@ -324,27 +323,91 @@ def changeUsername(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFil
                 config.remove_option(ip, "password" + str(remainUsers))
                 config.set(ip, ("username" + str(userNo)), oldUser) # rewrite old user and pass
                 config.set(ip, ("password" + str(userNo)), oldPasswd)
+                
+            if verbose:
+                print("\n--- Writing to config file ...")  
+            with open(connectionFile, 'w') as configfile:
+                config.write(configfile) # write everything to config file
         else:
             print("\nNo changes made")
-        
+            
     if verbose:
         print("\n--- Writing to config file ...")  
     with open(connectionFile, 'w') as configfile:
         config.write(configfile) # write everything to config file
     
-    #if show:
-    #    print("\nOld password: " + decryptPassword(f_key, value, verbose))
-    #else:
-    #    print("\nOld password: *****")
+    if changedUsername:
+        print("\nWould you also like to change the password")
+        changePasswd = input("(y/N) ? ")
+        
+        if changePasswd.lower() == "y":
+            changePassword(f_key, ip, userNo, oldCryptPasswd, connectionFile, show, verbose)
    
-def changePassword(f_key, ip, userNo, oldUsername, oldCryptPasswd, connectionFile, show, verbose):    
+def changePassword(f_key, ip, userNo, oldCryptPasswd, connectionFile, show, verbose): 
+    from getpass import getpass
+       
     if verbose:
-        print("\n--- Changing password for username" + str(userNo) + " \n    in section [" + ip + "]")
+        print("\n--- Changing password for password" + str(userNo) + " \n    in section [" + ip + "]")
+        
+    oldPlainTextPasswd = decryptPassword(f_key, oldCryptPasswd, verbose)
         
     if show:
-        print("\nOld password: " + decryptPassword(f_key, oldCryptPasswd, verbose))
+        print("\nOld password: " + oldPlainTextPasswd)
     else:
         print("\nOld passwd: *****")
+        
+    if verbose:
+        print("\n--- Reading config file ...")
+    config = configparser.ConfigParser()
+    config.read(connectionFile)  # read config fil
+        
+    while True: #input password
+        print("\nPassword ")
+        if show:
+            passwd1 = input("[" + decryptPassword(f_key, oldCryptPasswd, verbose) + "] ? ") # enter password invisible
+        else:
+            passwd1 = getpass("[*****] ? ") # enter password visibly
+        
+        if not passwd1: # if no password is given accept the default one
+            passwd1 = decryptPassword(f_key, oldCryptPasswd, verbose)
+            
+        print("Enter password again")
+        if show:
+            passwd2 = input("[" + decryptPassword(f_key, oldCryptPasswd, verbose) + "] ? ") # enter password invisible
+        else:
+            passwd2 = getpass("[*****] ? ") # enter password visibly
+        
+        if not passwd2: # if no password is given accept the default one
+            passwd2 = decryptPassword(f_key, oldCryptPasswd, verbose)
+            
+        if passwd1 == passwd2: # check if the same password was given both times
+            break
+        else:
+            print("\nPasswords do not match\nTry again")
+                    
+    if oldPlainTextPasswd != passwd1:
+        if show:
+            print("\nChanging password from " + oldPlainTextPasswd + " to " + passwd1 + " ...")
+        else:
+            print("\nChanging password ...")
+        newEncPasswd = encryptPassword(f_key, passwd1, show, verbose)
+        if verbose:
+            print("\n--- Writing new passwd ...")
+        config.set(ip, "password" + str(userNo), newEncPasswd)
+    else:
+        if passwd1:
+            print("\nYou have entered the old password again")
+        print("\nNo changes made")
+        
+    if verbose:
+        print("\n--- Writing to config file ...")  
+    with open(connectionFile, 'w') as configfile:
+        config.write(configfile) # write everything to config file
+                    
+                    
+                    
+                    
+                    
     
     
     
