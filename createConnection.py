@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import sys, ipaddress, configparser, socket
+import sys, ipaddress, configparser, socket, validators
 
 from getpass import getuser, getpass
 
@@ -72,19 +72,57 @@ def createConnection(f_key, connectionFile, show, verbose):
                 
                 if not ip: # if no IP stated, accept default IP
                     ip = defaultIP
-                
-                if verbose:
-                    print("--- Checking if IP is valid ...")
                     
-                try:
-                    ipaddress.ip_address(ip) # raises an exception if IP is not correct
-                except ValueError:
-                    print("\n" + ip + " is not a valid IP\nTry again")
-                except:
-                    print("\n" + ip + " is a bad input\nTry again")
+                ipValid = False
+                isURL = False
+                    
+                if verbose:
+                    print("\n--- Checking if " + ip + " is a valid IPv4 ...")
+                if not validators.ip_address.ipv4(ip):
+                    if verbose:
+                        print("    Not a valid IPv4")
                 else:
                     if verbose:
-                        print("    OK")
+                        print("    OK\n    Is a valid IPv4")
+                    ipValid = True
+                
+                if not ipValid:
+                    if verbose:
+                        print("\n--- Checking if " + ip + " is a valid IPv6 ...")
+                    if not validators.ip_address.ipv6(ip):
+                        if verbose:
+                            print("    Not a valid IPv6")
+                    else:
+                        if verbose:
+                            print("    OK\n    Is a valid IPv6")
+                        ipValid = True
+                    
+                if not ipValid:
+                    if verbose:
+                        print("\n--- Checking if " + ip + " is a valid domain ...")
+                    if not validators.domain(ip):
+                        if verbose:
+                            print("    Not a domain")
+                    else:
+                        if verbose:
+                            print("    OK\n    Is a valid domain")
+                        isURL = True
+                        ipValid = True
+                        
+                if not ipValid:
+                    if verbose:
+                        print("\n--- Checking if " + ip + " is a valid URL ...")
+                    if not validators.url("http://" + ip):
+                        if verbose:
+                            print("    Not a URL")
+                    else:
+                        if verbose:
+                            print("    OK\n    Is a valid URL")
+                        isURL = True
+                        ipValid = True
+                    
+                if ipValid:
+                    if verbose:
                         print("\n--- Checking if " + ip + " is already in sections ...")
                     for existingIP in oldSections:
                         if existingIP == ip:
@@ -98,11 +136,28 @@ def createConnection(f_key, connectionFile, show, verbose):
                                 print("    Using old hostname " + oldHostname + " and port " + oldPort)
                             newSection = False
                     break # break out of  ip loop
+                else:
+                    print("\n" + ip + "is not\n    a valid IPv4 address,\n    a valid IPv6 address,\n    a valid domain name,\n    a valid URL")
+                    print("Try again")
                  
             if verbose:
                 print("\n--- Asking " + ip + " for hostname ...")
+            if isURL:
+                if verbose:
+                    print("\n--- Trying to resolve " + ip + " ...")
+                try:
+                    domain, data, domainIP = socket.gethostbyname_ex(ip)
+                except:
+                    print("\nCould not get hostname")
+                else:
+                    probeIP = domainIP[0]
+                    if verbose:
+                        print("    OK\n    Got IP " + probeIP)
+            else:
+                probeIP = ip
+                
             try:
-                hostname = socket.gethostbyaddr(ip)[0] # probe for hostname
+                hostname = socket.gethostbyaddr(probeIP)[0] # probe for hostname
             except:
                 hostname = ""
                 onError(4, "Could not get hostname")
