@@ -34,7 +34,7 @@ def onError(errorCode, extra):
     elif errorCode in (3, 5, 6): # print error information and exit
         print(extra)
         sys.exit(errorCode)
-    elif errorCode == 4: # print error information and return running program
+    elif errorCode in(4, 7): # print error information and return running program
         print(extra)
         return
         
@@ -58,20 +58,25 @@ def get_ip():
         s.close()
     return IP
 
+def getKey(verbose):
+    # check if key file exists
+    keyFileLocation = os.path.join(settingsDir, "key")
+    if verbose:
+        print("--- Checking if key exists at\n    " + keyFileLocation)
+    if os.path.isfile(keyFileLocation):
+        if verbose:
+            print("    OK")
+        with open(keyFileLocation, 'rb') as file_object: # retrieve key
+            key = file_object.read()
+        if verbose:
+            print("    Key value: " + str(key))
+    else:
+        key = createKeyFile(keyFileLocation, verbose)
+        
+    return key
+
 def createKeyFile(keyFileLocation,verbose):
     print("\nCreating key file at " + keyFileLocation )
-    
-    #import random
-    #key = str(random.getrandbits(128))
-    
-    #import uuid
-    #key = uuid.uuid4().hex
-    
-    #import binascii, os
-    #key = str(binascii.hexlify(os.urandom(16)))
-
-    #import secrets
-    #key = secrets.token_hex(nbytes=16)
     
     from cryptography.fernet import Fernet
     key = Fernet.generate_key()
@@ -125,4 +130,12 @@ def decryptPassword(f_key, cryptPasswd, verbose):
     plainTextPass = bytes(f_key.decrypt(cryptPasswd.encode())).decode("utf-8")
     
     return plainTextPass
+
+
+    
+    
+    
+    
+    
+    
         

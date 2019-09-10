@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import configparser, sys, socket
+import configparser, socket
 
 from makeConnection import selectConnection
 
@@ -59,10 +59,10 @@ def editConnections(f_key, connectionFile, show, verbose):
     elif selection == 5:
         changePassword(f_key, ip, userNo, cryptPasswd, connectionFile, show, verbose)
                 
-def updateConnection(ip, host, port, username, plainTextPass, connectionFile, show, verbose):
-    
-    config = configparser.ConfigParser()
-    config.read(connectionFile)  # read config file
+#def updateConnection(ip, host, port, username, plainTextPass, connectionFile, show, verbose):
+#    
+#    config = configparser.ConfigParser()
+#    config.read(connectionFile)  # read config file
     
 def changeSectionName(oldIP, host, connectionFile, show, verbose):
     if verbose:

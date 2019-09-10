@@ -8,7 +8,7 @@ import sys, getopt, os
 from cryptography.fernet import Fernet
 
 # import modules from file modules.py
-from modules import onError, usage, createKeyFile, settingsDir
+from modules import onError, usage, settingsDir, getKey
 
 from createConnection import createConnection
 
@@ -62,7 +62,7 @@ for option, argument in myopts:
     elif option in ('-h', '--help'):  # display help text
         usage(0)
         
-# check is settings directory exists
+# check if settings directory exists
 if not os.path.isdir(settingsDir):
     if verbose:
         print("\n--- Directory for settings \n    " + settingsDir + ",\n    does not exist \n    Creating it ...")
@@ -71,20 +71,7 @@ if not os.path.isdir(settingsDir):
     except:
         onError(6, ("Could not create directory " + settingsDir))
                 
-# check if key file exists
-keyFileLocation = os.path.join(settingsDir, "key")
-if verbose:
-    print("--- Checking if key exists at\n    " + keyFileLocation)
-if os.path.isfile(keyFileLocation):
-    if verbose:
-        print("    OK")
-    with open(keyFileLocation, 'rb') as file_object: # retrieve key
-        key = file_object.read()
-    if verbose:
-        print("    Key value: " + str(key))
-else:
-    key = createKeyFile(keyFileLocation, verbose)
-    
+key = getKey(verbose)    
 
 f_key = Fernet(key)
 

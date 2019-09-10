@@ -2,7 +2,7 @@
 # -*- coding: utf-8 -*-
 # Encoding: UTF-8
 
-import configparser, sys, base64, os, subprocess
+import configparser, os
 
 from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess, decryptPassword
 
@@ -27,7 +27,7 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
                 print("Only integers allowed\nTry again:")
             else:
                 if selection <= 0 or selection > connectionTypeNo:
-                    print("Number must be 1-" + str(connectionTypeNo))
+                    print("Number must be 1-" + str(connectionTypeNo) + "\nTry again")
                 else:
                     break
         else:
@@ -36,86 +36,119 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
             
     connectionType = connectionTypes[int(selection) - 1]
     
+    # ssh
     if connectionType == "ssh":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
-        
         if userNo >= 0:
             print("\nWill connect to " + host + " at " + ip + " on port " + port + 
                   " as " + username + " who has user index " + str(userNo))
-        
             if show:
                 print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
-            
-            sshConnect(f_key, ip, port, username, cryptPasswd, "", verbose)
-            #pxsshConnect(f_key, ip, port, username, cryptPasswd, verbose)
-            #paramikoConnect(f_key, ip, port, username, cryptPasswd, verbose)
+            sshConnect(ip, port, username, "", verbose)
         else:
-            print("\nCan't make a connection")
-            
+            print("\nCan't make a connection  to " + host)
+    
+    # ssh -X   
     elif connectionType == "ssh -X":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
-        
         if userNo >= 0:
             print("\nWill connect to " + host + " at " + ip + " on port " + port + 
                   " as " + username + " who has user index " + str(userNo))
-        
             if show:
-                print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
-            
-            sshConnect(f_key, ip, port, username, cryptPasswd, "-X", verbose)
-            #pxsshConnect(f_key, ip, port, username, cryptPasswd, verbose)
-            #paramikoConnect(f_key, ip, port, username, cryptPasswd, verbose)
+                print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")            
+            sshConnect(ip, port, username, "-X", verbose)
         else:
             print("\nCan't make a connection")
     
+    # ssh -Y
     elif connectionType == "ssh -Y":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
-        
         if userNo >= 0:
             print("\nWill connect to " + host + " at " + ip + " on port " + port + 
                   " as " + username + " who has user index " + str(userNo))
-        
             if show:
                 print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
-            
-            sshConnect(f_key, ip, port, username, cryptPasswd, "-Y", verbose)
-            #pxsshConnect(f_key, ip, port, username, cryptPasswd, verbose)
-            #paramikoConnect(f_key, ip, port, username, cryptPasswd, verbose)
+            sshConnect(ip, port, username, "-Y", verbose)
         else:
-            print("\nCan't make a connection")
-                    
+            print("\nCan't make a connection to " + host)
+            
+    # sftp        
     elif connectionType == "sftp":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
-        
         if userNo >= 0:
             print("\nWill connect to " + host + " at " + ip + " on port " + port + 
                   " as " + username + " who has user index " + str(userNo))
-        
             if show:
                 print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
-            
             sftpConnect(f_key, ip, port, username, cryptPasswd, verbose)
         else:
-            print("\nCan't make a connection")                
-            
+            print("\nCan't make a connection to " + host)             
+          
+    # ssh-copy-id  
     elif connectionType == "ssh-copy-id":
         keyFile = sshCreateKey(verbose)
-        
         if verbose:
             print("\n--- Will use public key at " + keyFile)
-        
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
-
         if userNo >= 0:
             print("\nWill transfer key from " + keyFile + 
                   " \nto " + host + " at " + ip + " on port " + port + " as " + username)
-            
             if show:
                 print("\nUse password '" + decryptPassword(f_key, cryptPasswd, verbose) + "'")
-    
             sshCopyID(ip, port, username, keyFile, verbose)
         else:
             print("\nCan't transfer key")
+    
+    # run command on multiple hosts
+    elif connectionType == "run command on multiple hosts":
+        print("\nEnter command:")
+        while True:
+            cmd = input("[uptime] ? ")
+                        
+            if cmd:
+                break
+            else:
+                #print("You must enter a command\nTry again")
+                cmd = "uptime"
+                break
+        
+        connectionList = []
+        print("Select connections to run command")
+        while True:
+            ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
+            
+            connectionList.append({'ip': ip, 'host': host, 'port': port, 'userNo': userNo, 'username': username, 'cryptPasswd': cryptPasswd})
+            print("\nConnections added:")
+            for connection in connectionList:
+                print("    Host: " + connection['host'] + " User: " + connection['username'])
+            
+            print("\nDo you want to add another connection")
+            add = input("(y/N) ? ")
+            if add.lower() != "y":
+                break
+            
+        for connection in connectionList:
+            if userNo >= 0:
+                if connection['username'] == "root":
+                    prompt = "#"
+                else:
+                    prompt = "$"
+                if verbose:
+                    print("\n--- Will connect to " + connection['host'] + 
+                          " at " + connection['ip'] + 
+                          " on port " + connection['port'] + 
+                          " as " + connection['username'] + 
+                          " who has user index " + str(connection['userNo']))
+                    if show:
+                        print("    Use password '" + decryptPassword(f_key, connection['cryptPasswd'], verbose) + "'")
+                outputList, errorList = paramikoRunCmd(f_key, connection['ip'], connection['port'], connection['username'], connection['cryptPasswd'], cmd, verbose)
+                print("\nOutput from " + connection['username'] + "@" + connection['host'] + " " + prompt)
+                for output in outputList:
+                    print(prompt + " " + output.strip('\n'))
+            else:
+                print("\nCan't make a connection to " + host)
+        
+        
                 
 def sshCreateKey(verbose):
     if verbose:
@@ -196,7 +229,7 @@ def selectConnection(f_key, connectionFile, show, verbose):
         hostname = config.get(section, 'hostname')
         port = config.get(section, 'port')
         
-        print(" " + str(connectionNo) + ": " + section + ", " + hostname)
+        print(" " + str(connectionNo) + ": " + section + ":" + port + ", " + hostname)
         connectionList.append({u'number': connectionNo, u'ip': section, u'host': hostname, u'port': port})
         
     print("\nEnter number:")
@@ -222,6 +255,7 @@ def selectConnection(f_key, connectionFile, show, verbose):
         if int(connection['number']) == ipSelection:
             ip = connection['ip']
             host = connection['host']
+            port = connection['port']
         
     print("\nSelect user on " + ip + ", " + host + "\n----------")
         
@@ -291,30 +325,74 @@ def selectConnection(f_key, connectionFile, show, verbose):
         
     return ip, host, port, userSelection - 1, username, cryptPasswd   
         
-def paramikoConnect(f_key, ip, port, username, cryptPasswd, verbose):
+def paramikoRunCmd(f_key, ip, port, username, cryptPasswd, cmd, verbose):
+    import paramiko, base64
+    
+    outputList = []
+    errorList = []
+    
     if verbose:
-        print("--- Connecting with paramiko ...")
-        
-    import paramiko
-            
-    #key = paramiko.RSAKey(data=base64.b64decode(b'AAA...'))
+        print("\n--- Connecting with paramiko ...")
+    
+    rsaKeyFile = rsaPublicKey.strip(".pub")
+    if verbose:
+        print("    Using keyfile at " + rsaKeyFile)
+    
+    if verbose:
+        print("    Generating host keys ...")
+    host_key = paramiko.RSAKey.from_private_key_file(rsaKeyFile)
+    public_host_key = paramiko.RSAKey(data=host_key.asbytes())
+    
+    if verbose:
+        print("    Setting up client ...")
     client = paramiko.SSHClient()
-    #client.get_host_keys().add(ip, 'ssh-rsa', key)
     
+    #if verbose:
+    #    print("    Adding host keys ...")
+    #client.get_host_keys().add(ip, "ssh-rsa", public_host_key)
+    
+    if verbose:
+        print("    Setting missing host key policy ...")                           
     client.set_missing_host_key_policy(paramiko.AutoAddPolicy())
-    #client.load_host_keys(os.path.expanduser('~/.ssh/known_hosts'))
     
+    if verbose:
+        print("    Loading known hosts from " + knownHostsFile + " ...")
+    client.load_host_keys(knownHostsFile)
+    
+    if verbose:
+        print("    Connecting ...")
     try:
         client.connect(ip, port=int(port), username=username, password=decryptPassword(f_key, cryptPasswd, verbose))
     except paramiko.ssh_exception.SSHException as e:
-        print("Error: \n" + str(e))
+        onError(7, str(e))
+        stdout = ""
+        stderr = ""
     else:
-        stdin, stdout, stderr = client.exec_command('whoami')
+        if verbose:
+            print("    Running command ...")
+        stdin, stdout, stderr = client.exec_command(cmd)
+        
+        if verbose:
+            print("\n--- Output:")
         for line in stdout:
-            print('... ' + line.strip('\n'))
+            outputList.append(line)
+            if verbose:
+                print('    ' + line.strip('\n'))
+        
+        if verbose:
+            print("\n--- Error:")
+        for line in stderr:
+            errorList.append(line)
+            if verbose:
+                print('    ' + line.strip('\n'))
+        
+        if verbose:
+            print("\n--- Closing client ...")
         client.close()
         
-def sshConnect(f_key, ip, port, username, cryptPasswd, extra, verbose):
+    return outputList, errorList
+
+def sshConnect(ip, port, username, extra, verbose):
     if verbose:
         print("\n--- Connecting with ssh " + extra + " ...")
     
