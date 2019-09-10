@@ -42,8 +42,20 @@ def onError(errorCode, extra):
 def usage(exitCode):
     print("\nUsage:")
     print("----------------------------------------")
-    print("%s " % sys.argv[0])
-
+    print("%s <options>" % sys.argv[0])
+    print("\nOptions: ")
+    print("  -c, --connect")
+    print("    Connect to remote host")
+    print("  -e, --edit")
+    print("    Edit hosts, port, usernames etc.")
+    print("  -p, --print")
+    print("    Prints all hosts and connections on screen")
+    print("  -s, --show")
+    print("    Shows passwords in plain text")
+    print("  -v, --verbose")
+    print("    Verbose output")
+    print("  -h, --help")
+    print("    Prints this")
     sys.exit(exitCode)
     
 def get_ip():
