@@ -58,11 +58,6 @@ def editConnections(f_key, connectionFile, show, verbose):
         changeUsername(f_key, ip, userNo, username, cryptPasswd, connectionFile, show, verbose)
     elif selection == 5:
         changePassword(f_key, ip, userNo, cryptPasswd, connectionFile, show, verbose)
-                
-#def updateConnection(ip, host, port, username, plainTextPass, connectionFile, show, verbose):
-#    
-#    config = configparser.ConfigParser()
-#    config.read(connectionFile)  # read config file
     
 def changeSectionName(oldIP, host, connectionFile, show, verbose):
     if verbose:
