@@ -14,5 +14,29 @@ Functions
    sftp
  * Run command on multiple hosts by selecting them from list
  * scp (coming)
+ * Stores key and host file in your home directory/.pyConnect
  
+Usage
+==========
  
+ pyconnect <options\>
+
+Options:   
+  -c, --connect  
+    Connect to remote host  
+  -a, --add  
+    Add hosts, port, usernames etc.  
+  -e, --edit  
+    Edit hosts, port, usernames etc.  
+  -p, --print  
+    Prints all hosts, port, usernames etc. on screen  
+  -s, --show  
+    Shows passwords in plain text  
+  -v, --verbose  
+    Verbose output  
+  -h, --help  
+    Prints this  
+    
+Installation
+==========
+Just copy everything to were you want it
