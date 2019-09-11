@@ -16,7 +16,7 @@ knownhostsfile = config.get('paths', 'knownhostsfile').strip()
 rsapublickey = config.get('paths', 'rsapublickey').strip()
 settingsdir = config.get('paths', 'settingsdir').strip()
 
-connectionTypes = config.get('variables', 'connectionTypes').split(",")
+connectionTypes = [x.strip() for x in config.get('variables', 'connectiontypes').split(',')]
 
 homeDir = str(Path.home())
 
