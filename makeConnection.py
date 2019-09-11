@@ -4,12 +4,11 @@
 
 import configparser, os
 
-from modules import knownHostsFile, rsaPublicKey, onError, runSubprocess, decryptPassword
+from modules import (knownHostsFile, rsaPublicKey, onError, runSubprocess, decryptPassword, 
+                     connectionTypes)
 
 def selectConnectionType(f_key, connectionFile, show, verbose):
     connectionTypeNo = 0
-    
-    connectionTypes = ['ssh', 'ssh -X', 'ssh -Y', 'sftp',  'scp',  'ssh-copy-id', 'run command on multiple hosts']
 
     print("\nSelect connection type\n----------")
     for connectionType in connectionTypes:

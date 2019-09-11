@@ -16,6 +16,8 @@ knownhostsfile = config.get('paths', 'knownhostsfile').strip()
 rsapublickey = config.get('paths', 'rsapublickey').strip()
 settingsdir = config.get('paths', 'settingsdir').strip()
 
+connectionTypes = config.get('variables', 'connectionTypes').split(",")
+
 homeDir = str(Path.home())
 
 knownHostsFile = os.path.join(homeDir, knownhostsfile)
