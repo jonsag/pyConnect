@@ -5,10 +5,8 @@
 # import modules
 import sys, getopt, os
 
-from cryptography.fernet import Fernet
-
 # import modules from file modules.py
-from modules import onError, usage, settingsDir, getKey
+from modules import onError, usage, settingsDir, getF_key, connectionFile
 
 from createConnection import createConnection
 
@@ -69,16 +67,13 @@ if not os.path.isdir(settingsDir):
     try:
         os.makedirs(settingsDir, exist_ok=False)
     except:
-        onError(6, ("Could not create directory " + settingsDir))
-                
-key = getKey(verbose)    
+        onError(6, ("Could not create directory " + settingsDir))   
 
-f_key = Fernet(key)
+f_key = getF_key(verbose)
 
 if selections >= 2:
     onError(3, "Only one of -a, -p, -c and -e can be stated")
 
-connectionFile = os.path.join(settingsDir, "connections")
 if not os.path.isfile(connectionFile):
     print("\nYou haven't created any connections yet\nLet's start with adding some\nThen rerun this program")
     create = True

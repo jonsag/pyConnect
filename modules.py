@@ -8,6 +8,8 @@ import socket
 
 from pathlib import Path
 
+from cryptography.fernet import Fernet
+
 config = configparser.ConfigParser()  # define config file
 config.read("%s/config.ini" % os.path.dirname(os.path.realpath(__file__)))  # read config file
 
@@ -18,11 +20,17 @@ settingsdir = config.get('paths', 'settingsdir').strip()
 
 connectionTypes = [x.strip() for x in config.get('variables', 'connectiontypes').split(',')]
 
+mainWidth = config.get('gui', 'mainwidth').strip()
+mainHeight = config.get('gui', 'mainheight').strip()
+mainWH = mainWidth + "x" + mainHeight
+
 homeDir = str(Path.home())
 
 knownHostsFile = os.path.join(homeDir, knownhostsfile)
 rsaPublicKey = os.path.join(homeDir, rsapublickey)
 settingsDir = os.path.join(homeDir, settingsdir)
+
+connectionFile = os.path.join(settingsDir, "connections")
 
 # handle errors
 def onError(errorCode, extra):
@@ -74,7 +82,7 @@ def get_ip():
         s.close()
     return IP
 
-def getKey(verbose):
+def getF_key(verbose):
     # check if key file exists
     keyFileLocation = os.path.join(settingsDir, "key")
     if verbose:
@@ -89,7 +97,9 @@ def getKey(verbose):
     else:
         key = createKeyFile(keyFileLocation, verbose)
         
-    return key
+    f_key = Fernet(key)
+        
+    return f_key
 
 def createKeyFile(keyFileLocation,verbose):
     print("\nCreating key file at " + keyFileLocation )
@@ -146,6 +156,21 @@ def decryptPassword(f_key, cryptPasswd, verbose):
     plainTextPass = bytes(f_key.decrypt(cryptPasswd.encode())).decode("utf-8")
     
     return plainTextPass
+
+def findUserNo(ip, usernameFind, verbose):
+    config = configparser.ConfigParser()
+    config.read(connectionFile)  # read config file
+    
+    options = config.options(ip)
+        
+    for option in options:
+        if option.startswith('username'):
+            username = config.get(ip, option)
+            if username == usernameFind:
+                userNo = option.lstrip("username")
+                
+    return userNo
+    
 
 
     

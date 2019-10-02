@@ -35,6 +35,10 @@ def selectConnectionType(f_key, connectionFile, show, verbose):
             
     connectionType = connectionTypes[int(selection) - 1]
     
+    makeConnection(connectionType, f_key, connectionFile, show, verbose)
+    
+def makeConnection(connectionType, f_key, connectionFile, show, verbose):
+    
     # ssh
     if connectionType == "ssh":
         ip, host, port, userNo, username, cryptPasswd = selectConnection(f_key, connectionFile, show, verbose)
