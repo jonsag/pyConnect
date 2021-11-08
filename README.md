@@ -19,7 +19,7 @@ Python script to store remote computers with username, password and port to conn
 
 ## Usage
 
- pyconnect <options\>
+ pyConnect.py <options\>
 
 Options:  
   -c, --connect  

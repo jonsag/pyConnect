@@ -35,7 +35,7 @@ try:
 except getopt.GetoptError as e:
     onError(1, str(e))
 
-# if no options passed, then exit
+# if no options passed, then connect
 if len(sys.argv) == 1:  # no options passed
     print("Automatically selecting to connect")
     connect = True
