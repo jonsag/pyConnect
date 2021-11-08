@@ -17,7 +17,7 @@ from makeConnection import selectConnectionType
 from editConnections import editConnections
 
 create = False
-view = False    
+view = False
 show = False
 connect = False
 edit = False
@@ -26,9 +26,11 @@ selections = 0
 
 # handle options and arguments passed to script
 try:
-    myopts, args = getopt.getopt(sys.argv[1:],
-                                 'apscevh',
-                                 ['add', 'print', 'show', 'connect', 'edit', 'verbose', 'help'])
+    myopts, args = getopt.getopt(
+        sys.argv[1:],
+        "apscevh",
+        ["add", "print", "show", "connect", "edit", "verbose", "help"],
+    )
 
 except getopt.GetoptError as e:
     onError(1, str(e))
@@ -37,37 +39,41 @@ except getopt.GetoptError as e:
 if len(sys.argv) == 1:  # no options passed
     print("Automatically selecting to connect")
     connect = True
-    #onError(2, 2)
+    # onError(2, 2)
 
 # interpret options and arguments
 for option, argument in myopts:
-    if option in ('-a', '--add'):  # add connections
+    if option in ("-a", "--add"):  # add connections
         create = True
         selections += 1
-    elif option in ('-p', '--print'):  # print connections
+    elif option in ("-p", "--print"):  # print connections
         view = True
-        selections += 1  
-    elif option in ('-s', '--show'):  # print passwords on screen
+        selections += 1
+    elif option in ("-s", "--show"):  # print passwords on screen
         show = True
-    elif option in ('-c', '--connect'):  # connect
+    elif option in ("-c", "--connect"):  # connect
         connect = True
         selections += 1
-    elif option in ('-e', '--edit'):  # edit connections
+    elif option in ("-e", "--edit"):  # edit connections
         edit = True
         selections += 1
-    elif option in ('-v', '--verbose'):  # verbose output
+    elif option in ("-v", "--verbose"):  # verbose output
         verbose = True
-    elif option in ('-h', '--help'):  # display help text
+    elif option in ("-h", "--help"):  # display help text
         usage(0)
-        
+
 # check if settings directory exists
 if not os.path.isdir(settingsDir):
     if verbose:
-        print("\n--- Directory for settings \n    " + settingsDir + ",\n    does not exist \n    Creating it ...")
+        print(
+            "\n--- Directory for settings \n    "
+            + settingsDir
+            + ",\n    does not exist \n    Creating it ..."
+        )
     try:
         os.makedirs(settingsDir, exist_ok=False)
     except:
-        onError(6, ("Could not create directory " + settingsDir))   
+        onError(6, ("Could not create directory " + settingsDir))
 
 f_key = getF_key(verbose)
 
@@ -75,23 +81,22 @@ if selections >= 2:
     onError(3, "Only one of -a, -p, -c and -e can be stated")
 
 if not os.path.isfile(connectionFile):
-    print("\nYou haven't created any connections yet\nLet's start with adding some\nThen rerun this program")
+    print(
+        "\nYou haven't created any connections yet\nLet's start with adding some\nThen rerun this program"
+    )
     create = True
     view = False
     connect = False
     edit = False
-    
+
 if create:
     createConnection(f_key, connectionFile, show, verbose)
 
 if view:
     viewConnections(f_key, connectionFile, show, verbose)
-    
+
 if connect:
     selectConnectionType(f_key, connectionFile, show, verbose)
-    
+
 if edit:
-    editConnections(f_key, connectionFile, show, verbose)    
-    
-    
-    
+    editConnections(f_key, connectionFile, show, verbose)
